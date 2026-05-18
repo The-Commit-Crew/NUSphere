@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# environment variables
+.env
+
+# logs
+logs
+*.log
+npm-debug.log*
+
+# prisma generated files
+.prisma/
+
+# operating system files
+.DS_Store
+
+# build output
+dist/
+
+# IDE files
+.vscode/
+/src/generated/prisma
