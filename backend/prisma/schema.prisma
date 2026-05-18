@@ -5,10 +5,9 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
-datasource db {
+datasource db {`
   provider = "postgresql"
 }
 
@@ -17,5 +16,7 @@ model User{
   email String @unique
   password String
   name String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
