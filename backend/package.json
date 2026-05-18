@@ -9,7 +9,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
     "@prisma/client": "^7.8.0",
     "cors": "^2.8.6",
@@ -17,6 +17,7 @@
     "express": "^5.2.1"
   },
   "devDependencies": {
+    "@types/node": "^25.8.0",
     "prisma": "^7.8.0"
   }
 }
