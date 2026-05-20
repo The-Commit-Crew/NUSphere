@@ -7,7 +7,7 @@ export const registerUserService = async (user) => {
   const { email, password, username } = user;
   const normalizedEmail = email.toLowerCase();
   const { error } = registerSchema.validate({
-    normalizedEmail,
+    email: normalizedEmail,
     password,
     username,
   });
