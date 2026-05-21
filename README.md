@@ -1,5 +1,1 @@
 # NUSphere
-
-## Overview
-
-## Tech Stack
