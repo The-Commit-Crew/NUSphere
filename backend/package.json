@@ -4,8 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest --forceExit",
+    "test:coverage": "node --experimental-vm-modules node_modules/.bin/jest --coverage --forceExit"
   },
   "keywords": [],
   "author": "",
@@ -25,7 +28,16 @@
     "resend": "^6.12.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.8.0",
-    "prisma": "^7.8.0"
+    "eslint": "^10.4.0",
+    "jest": "^30.4.2",
+    "prisma": "^7.8.0",
+    "supertest": "^7.2.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {},
+    "testMatch": ["**/tests/**/*.test.js"]
   }
 }
