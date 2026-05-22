@@ -1,12 +1,23 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
 
-export const sendOtpEmail = (email, otp) => {
-  resend.emails.send({
-    from: "NUSphere <onboarding@resend.dev>",
+export const sendOtpEmail = async (email, otp) => {
+  await transporter.sendMail({
+    from: `"NUSphere" <${process.env.GMAIL_USER}>`,
     to: email,
     subject: "Your NUSphere verification code",
-    html: `<p>Your OTP is <strong>${otp}</strong>. It expires in 10 minutes. </p>`,
+    html: `
+    <p>Your NUSphere verification code is: </p>
+    <h2>${otp}</h2>
+    <p>This code expires in 10 minutes.</p>
+    <p>If you did not request this, please ignore this email.</p>
+    `,
   });
 };
