@@ -1,13 +1,51 @@
+import { useState } from 'react'
+import Sidebar from '../components/Sidebar'
+import Postlist from '../components/Postlist'
 import { Link } from 'react-router-dom'
-function Homepage(){
-    return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Welcome to NUSphere</h1>
-      <p className="text-gray-500">Your NUS community hub</p>
-       <Link to="/login" className="text-blue-600 underline">
-        Go to Login
-      </Link>
+import { useAuth } from '../context/AuthContext'
+
+function Homepage() {
+  const { user } = useAuth()
+  const [selectedTopicId, setSelectedTopicId] = useState(null)
+
+  return (
+    <div className="max-w-6xl mx-auto px-6 py-6">
+
+      {/* Top bar */}
+      <div style={{ borderBottom: '1px solid #E8E0D8' }} className="flex items-center gap-6 mb-6 pb-3">
+        <button
+          onClick={() => setSelectedTopicId(null)}
+          style={selectedTopicId === null
+            ? { backgroundColor: '#C4552A', color: '#fff' }
+            : { color: '#1A1512' }
+          }
+          className="px-4 py-1.5 rounded-full text-sm font-medium hover:opacity-80"
+        >
+          All
+        </button>
+
+        {user && (
+          <Link
+            to="/create-post"
+            style={{ marginLeft: 'auto', border: '1px solid #C4552A', color: '#C4552A' }}
+            className="px-4 py-1.5 rounded-full text-sm font-medium hover:opacity-80"
+          >
+            + Ask a question
+          </Link>
+        )}
+      </div>
+
+      {/* Two column layout */}
+      <div className="flex gap-6">
+        <Sidebar
+          selectedTopicId={selectedTopicId}
+          onSelectTopic={setSelectedTopicId}
+        />
+        <Postlist selectedTopicId={selectedTopicId} />
+      </div>
+
     </div>
   )
 }
+
 export default Homepage

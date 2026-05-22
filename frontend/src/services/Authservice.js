@@ -43,3 +43,42 @@ export async function resendOtp(data) {
   if (!response.ok) throw new Error(result.message || 'Resend OTP failed')
   return result
 }
+
+// ---- Topics ----
+
+export async function getAllTopics() {
+  const response = await fetch(`${BASE_URL}/topics`)
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to fetch topics')
+  return result
+}
+
+export async function getTopicById(topicId) {
+  const response = await fetch(`${BASE_URL}/topics/${topicId}`)
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to fetch topic')
+  return result
+}
+
+// ---- Posts ----
+
+export async function getPostById(postId) {
+  const response = await fetch(`${BASE_URL}/posts/${postId}`)
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to fetch post')
+  return result
+}
+
+export async function createPost(data, token) {
+  const response = await fetch(`${BASE_URL}/posts`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to create post')
+  return result
+}
