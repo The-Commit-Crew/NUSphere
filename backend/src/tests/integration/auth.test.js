@@ -1,7 +1,10 @@
-import { describe, it, beforeAll, afterAll, expect } from "@jest/globals";
+import { describe, it, beforeAll, afterAll } from "@jest/globals";
+import { expect } from "@jest/globals";
 import request from "supertest";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
+
+// ─── SETUP AND TEARDOWN ───────────────────────────────────────────────────────
 
 beforeAll(async () => {
   await prisma.otpToken.deleteMany({
@@ -22,6 +25,8 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
+// ─── TEST DATA ────────────────────────────────────────────────────────────────
+
 const testUser = {
   firstName: "Test",
   lastName: "User",
@@ -29,6 +34,8 @@ const testUser = {
   email: "testuser@u.nus.edu",
   password: "Password1",
 };
+
+// ─── REGISTER ─────────────────────────────────────────────────────────────────
 
 describe("POST /api/auth/register", () => {
   it("should register a new user and return otp_required", async () => {
@@ -151,6 +158,8 @@ describe("POST /api/auth/register", () => {
   });
 });
 
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+
 describe("POST /api/auth/login", () => {
   it("should return otp_required when user is not verified", async () => {
     const res = await request(app)
@@ -204,6 +213,7 @@ describe("POST /api/auth/login", () => {
   });
 
   it("should return action login with token when logging in with email", async () => {
+    // manually verify the user so login can succeed
     await prisma.user.update({
       where: { email: testUser.email },
       data: { isVerified: true },
@@ -221,6 +231,7 @@ describe("POST /api/auth/login", () => {
     expect(res.body.user.firstName).toBe(testUser.firstName);
     expect(res.body.user.lastName).toBe(testUser.lastName);
 
+    // reset to unverified for subsequent tests
     await prisma.user.update({
       where: { email: testUser.email },
       data: { isVerified: false },
@@ -247,6 +258,8 @@ describe("POST /api/auth/login", () => {
     });
   });
 });
+
+// ─── VERIFY OTP ───────────────────────────────────────────────────────────────
 
 describe("POST /api/auth/verify-otp", () => {
   it("should fail with a wrong OTP", async () => {
@@ -291,9 +304,12 @@ describe("POST /api/auth/verify-otp", () => {
   });
 
   it("should verify a correct OTP and return token", async () => {
+    // login first to trigger a fresh OTP being issued
     await request(app)
       .post("/api/auth/login")
       .send({ email: testUser.email, password: testUser.password });
+
+    // fetch the real OTP directly from the database
     const user = await prisma.user.findUnique({
       where: { email: testUser.email },
     });
@@ -318,6 +334,7 @@ describe("POST /api/auth/verify-otp", () => {
   });
 
   it("should fail when trying to reuse an already used OTP", async () => {
+    // fetch the most recently used OTP
     const user = await prisma.user.findUnique({
       where: { email: testUser.email },
     });
@@ -336,6 +353,8 @@ describe("POST /api/auth/verify-otp", () => {
   });
 });
 
+// ─── RESEND OTP ───────────────────────────────────────────────────────────────
+
 describe("POST /api/auth/resend-otp", () => {
   it("should fail for non-existent email", async () => {
     const res = await request(app)
@@ -346,6 +365,7 @@ describe("POST /api/auth/resend-otp", () => {
   });
 
   it("should fail for an already verified user", async () => {
+    // user is verified from the verify-otp success test above
     const res = await request(app)
       .post("/api/auth/resend-otp")
       .send({ email: testUser.email });
@@ -355,6 +375,7 @@ describe("POST /api/auth/resend-otp", () => {
   });
 
   it("should resend OTP for an unverified user", async () => {
+    // reset user to unverified so resend makes sense
     await prisma.user.update({
       where: { email: testUser.email },
       data: { isVerified: false },
