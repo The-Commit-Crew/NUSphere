@@ -291,9 +291,16 @@ describe("POST /api/auth/verify-otp", () => {
   });
 
   it("should verify a correct OTP and return token", async () => {
-    await request(app)
+    await prisma.user.update({
+      where: { email: testUser.email },
+      data: { isVerified: false },
+    });
+
+    const resendRes = await request(app)
       .post("/api/auth/resend-otp")
       .send({ email: testUser.email });
+
+    expect(resendRes.status).toBe(200);
 
     const user = await prisma.user.findUnique({
       where: { email: testUser.email },
@@ -303,14 +310,21 @@ describe("POST /api/auth/verify-otp", () => {
       where: {
         userId: user.id,
         used: false,
-        expiresAt: { gt: new Date() },
+        expiresAt: {
+          gt: new Date(),
+        },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
 
-    const res = await request(app)
-      .post("/api/auth/verify-otp")
-      .send({ email: testUser.email, otp: otpRecord.token });
+    expect(otpRecord).not.toBeNull();
+
+    const res = await request(app).post("/api/auth/verify-otp").send({
+      email: testUser.email,
+      otp: otpRecord.token,
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.action).toBe("verified");
