@@ -292,8 +292,9 @@ describe("POST /api/auth/verify-otp", () => {
 
   it("should verify a correct OTP and return token", async () => {
     await request(app)
-      .post("/api/auth/login")
-      .send({ email: testUser.email, password: testUser.password });
+      .post("/api/auth/resend-otp")
+      .send({ email: testUser.email });
+
     const user = await prisma.user.findUnique({
       where: { email: testUser.email },
     });
@@ -346,6 +347,12 @@ describe("POST /api/auth/resend-otp", () => {
   });
 
   it("should fail for an already verified user", async () => {
+    // explicitly set verified so this test doesn't depend on previous tests
+    await prisma.user.update({
+      where: { email: testUser.email },
+      data: { isVerified: true },
+    });
+
     const res = await request(app)
       .post("/api/auth/resend-otp")
       .send({ email: testUser.email });
