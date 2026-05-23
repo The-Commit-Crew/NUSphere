@@ -18,71 +18,59 @@ const testUser = {
   password: "Password1",
 };
 
-async function createTestUser() {
-  const existingUser = await prisma.user.findUnique({
-    where: { email: testUser.email },
-  });
-
-  if (!existingUser) {
-    await request(app).post("/api/auth/register").send(testUser);
-  }
-}
-
-beforeAll(async () => {
+// Extremely aggressive cleanup to prevent ANY cross-test contamination
+const cleanupDb = async () => {
   await prisma.otpToken.deleteMany({
     where: {
       user: {
-        email: {
-          contains: "testuser",
-        },
+        email: { contains: "test" },
       },
     },
   });
 
   await prisma.user.deleteMany({
     where: {
-      email: {
-        contains: "testuser",
-      },
+      OR: [
+        { email: { contains: "test" } },
+        { username: { contains: "test" } },
+        { username: "otherusername" },
+        { username: "nonexistentuser" },
+      ],
     },
   });
+};
+
+beforeAll(async () => {
+  await cleanupDb();
 });
 
 beforeEach(async () => {
-  await createTestUser();
+  await cleanupDb();
+  // Register a fresh baseline user for every single test
+  await request(app).post("/api/auth/register").send(testUser);
 });
 
 afterAll(async () => {
-  await prisma.otpToken.deleteMany({
-    where: {
-      user: {
-        email: {
-          contains: "testuser",
-        },
-      },
-    },
-  });
-
-  await prisma.user.deleteMany({
-    where: {
-      email: {
-        contains: "testuser",
-      },
-    },
-  });
-
+  await cleanupDb();
   await prisma.$disconnect();
 });
 
 describe("POST /api/auth/register", () => {
   it("should fail when registering with the same email again", async () => {
-    const res = await request(app).post("/api/auth/register").send(testUser);
+    // Isolate the test: Change the username so ONLY the email collides
+    const res = await request(app)
+      .post("/api/auth/register")
+      .send({
+        ...testUser,
+        username: "differentusername",
+      });
 
     expect(res.status).toBe(400);
     expect(res.body.message).toBe("User already exists");
   });
 
   it("should fail when registering with the same username but different email", async () => {
+    // Isolate the test: Change the email so ONLY the username collides
     const res = await request(app)
       .post("/api/auth/register")
       .send({
@@ -111,6 +99,8 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
+        username: "otherusername1",
+        email: "testuser3@u.nus.edu",
         firstName: undefined,
       });
 
@@ -122,6 +112,8 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
+        username: "otherusername2",
+        email: "testuser4@u.nus.edu",
         lastName: undefined,
       });
 
@@ -133,6 +125,7 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
+        email: "testuser5@u.nus.edu",
         username: undefined,
       });
 
@@ -144,6 +137,8 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
+        username: "otherusername3",
+        email: "testuser6@u.nus.edu",
         password: undefined,
       });
 
@@ -155,8 +150,8 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        username: "otherusername",
-        email: "testuser2@u.nus.edu",
+        username: "otherusername4",
+        email: "testuser7@u.nus.edu",
         password: "Pass1",
       });
 
@@ -168,8 +163,8 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        username: "otherusername",
-        email: "testuser2@u.nus.edu",
+        username: "otherusername5",
+        email: "testuser8@u.nus.edu",
         password: "PasswordOnly",
       });
 
@@ -181,7 +176,7 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        email: "testuser2@u.nus.edu",
+        email: "testuser9@u.nus.edu",
         username: "test_user!",
       });
 
@@ -193,8 +188,8 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        email: "testuser2@u.nus.edu",
-        username: "otherusername",
+        email: "testuser10@u.nus.edu",
+        username: "otherusername6",
         firstName: "Test123",
       });
 
@@ -204,11 +199,7 @@ describe("POST /api/auth/register", () => {
 
 describe("POST /api/auth/login", () => {
   it("should return otp_required when user is not verified", async () => {
-    await prisma.user.update({
-      where: { email: testUser.email },
-      data: { isVerified: false },
-    });
-
+    // User is guaranteed to be freshly registered and unverified by beforeEach
     const res = await request(app).post("/api/auth/login").send({
       email: testUser.email,
       password: testUser.password,
@@ -342,15 +333,7 @@ describe("POST /api/auth/verify-otp", () => {
   });
 
   it("should verify a correct OTP and return token", async () => {
-    await prisma.user.update({
-      where: { email: testUser.email },
-      data: { isVerified: false },
-    });
-
-    await request(app).post("/api/auth/resend-otp").send({
-      email: testUser.email,
-    });
-
+    // User is guaranteed freshly registered by beforeEach, so an OTP naturally exists
     const user = await prisma.user.findUnique({
       where: { email: testUser.email },
     });
@@ -360,9 +343,7 @@ describe("POST /api/auth/verify-otp", () => {
         userId: user.id,
         used: false,
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
     });
 
     expect(otpRecord).not.toBeNull();
@@ -378,15 +359,6 @@ describe("POST /api/auth/verify-otp", () => {
   });
 
   it("should fail when trying to reuse an already used OTP", async () => {
-    await prisma.user.update({
-      where: { email: testUser.email },
-      data: { isVerified: false },
-    });
-
-    await request(app).post("/api/auth/resend-otp").send({
-      email: testUser.email,
-    });
-
     const user = await prisma.user.findUnique({
       where: { email: testUser.email },
     });
@@ -396,9 +368,7 @@ describe("POST /api/auth/verify-otp", () => {
         userId: user.id,
         used: false,
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
     });
 
     // First use
@@ -428,7 +398,6 @@ describe("POST /api/auth/resend-otp", () => {
   });
 
   it("should fail for an already verified user", async () => {
-    // Explicitly set the user to verified to prevent test state bleed
     await prisma.user.update({
       where: { email: testUser.email },
       data: { isVerified: true },
@@ -443,11 +412,7 @@ describe("POST /api/auth/resend-otp", () => {
   });
 
   it("should resend OTP for an unverified user", async () => {
-    await prisma.user.update({
-      where: { email: testUser.email },
-      data: { isVerified: false },
-    });
-
+    // User is guaranteed fresh & unverified by beforeEach
     const res = await request(app).post("/api/auth/resend-otp").send({
       email: testUser.email,
     });
