@@ -18,7 +18,6 @@ const testUser = {
   password: "Password1",
 };
 
-// helper function to create a clean test user
 async function createTestUser() {
   const existingUser = await prisma.user.findUnique({
     where: { email: testUser.email },
@@ -402,13 +401,11 @@ describe("POST /api/auth/verify-otp", () => {
       },
     });
 
-    // first use
     await request(app).post("/api/auth/verify-otp").send({
       email: testUser.email,
       otp: otpRecord.token,
     });
 
-    // reuse same OTP
     const res = await request(app).post("/api/auth/verify-otp").send({
       email: testUser.email,
       otp: otpRecord.token,
