@@ -10,11 +10,15 @@ import request from "supertest";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
 
+// ─── UNIQUE TEST USER PER CI RUN ─────────────────────────────────────────────
+// Using timestamp ensures parallel CI runs never conflict with each other
+
+const timestamp = Date.now();
 const testUser = {
   firstName: "Test",
   lastName: "User",
-  username: "maintestuser",
-  email: "maintestuser@u.nus.edu",
+  username: `testuser${timestamp}`,
+  email: `testuser${timestamp}@u.nus.edu`,
   password: "Password1",
 };
 
@@ -22,56 +26,54 @@ let testUserId;
 
 // ─── SETUP AND TEARDOWN ───────────────────────────────────────────────────────
 
-const cleanupTestData = async () => {
+beforeAll(async () => {
+  // Clean up any leftover data from previous failed runs with this exact email
   await prisma.otpToken.deleteMany({
-    where: { user: { email: { contains: "maintestuser" } } },
+    where: { user: { email: testUser.email } },
   });
   await prisma.user.deleteMany({
-    where: {
-      OR: [
-        { email: { contains: "maintestuser" } },
-        { email: { contains: "otherusername" } },
-        { username: "otherusername" },
-        { username: "otherusername1" },
-        { username: "otherusername2" },
-        { username: "otherusername3" },
-        { username: "otherusername4" },
-        { username: "otherusername5" },
-        { username: "otherusername6" },
-      ],
-    },
-  });
-};
-
-beforeAll(async () => {
-  await cleanupTestData();
-
-  await request(app).post("/api/auth/register").send(testUser);
-
-  const user = await prisma.user.findUnique({
     where: { email: testUser.email },
   });
+
+  // Create user directly via Prisma — bypasses email sending entirely
+  const bcrypt = await import("bcrypt");
+  const hashed = await bcrypt.default.hash(testUser.password, 10);
+
+  const user = await prisma.user.create({
+    data: {
+      firstName: testUser.firstName,
+      lastName: testUser.lastName,
+      username: testUser.username,
+      email: testUser.email,
+      password: hashed,
+      isVerified: false,
+    },
+  });
+
   testUserId = user.id;
-});
+}, 30000);
 
 beforeEach(async () => {
-  // Only reset if user still exists
-  const user = await prisma.user.findUnique({
+  if (!testUserId) return;
+
+  // Check user still exists before trying to update
+  const user = await prisma.user.findUnique({ where: { id: testUserId } });
+  if (!user) return;
+
+  await prisma.otpToken.deleteMany({ where: { userId: testUserId } });
+  await prisma.user.update({
     where: { id: testUserId },
+    data: { isVerified: false },
   });
-  if (user) {
-    await prisma.otpToken.deleteMany({ where: { userId: testUserId } });
-    await prisma.user.update({
-      where: { id: testUserId },
-      data: { isVerified: false },
-    });
-  }
 });
 
 afterAll(async () => {
-  await cleanupTestData();
+  if (testUserId) {
+    await prisma.otpToken.deleteMany({ where: { userId: testUserId } });
+    await prisma.user.deleteMany({ where: { id: testUserId } });
+  }
   await prisma.$disconnect();
-});
+}, 30000);
 
 // ─── REGISTER TESTS ───────────────────────────────────────────────────────────
 
@@ -81,7 +83,7 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        username: "differentusername",
+        username: `diffuser${timestamp}`,
       });
     expect(res.status).toBe(400);
     expect(res.body.message).toBe("User already exists");
@@ -92,7 +94,7 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        email: "differentemail@u.nus.edu",
+        email: `diff${timestamp}@u.nus.edu`,
       });
     expect(res.status).toBe(400);
     expect(res.body.message).toBe("Username already taken");
@@ -103,8 +105,8 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        email: "test@gmail.com",
-        username: "otherusername",
+        email: `other${timestamp}@gmail.com`,
+        username: `other${timestamp}`,
       });
     expect(res.status).toBe(400);
   });
@@ -114,8 +116,8 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        username: "otherusername1",
-        email: "otherusername1@u.nus.edu",
+        email: `fn${timestamp}@u.nus.edu`,
+        username: `fn${timestamp}`,
         firstName: undefined,
       });
     expect(res.status).toBe(400);
@@ -126,8 +128,8 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        username: "otherusername2",
-        email: "otherusername2@u.nus.edu",
+        email: `ln${timestamp}@u.nus.edu`,
+        username: `ln${timestamp}`,
         lastName: undefined,
       });
     expect(res.status).toBe(400);
@@ -138,7 +140,7 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        email: "otherusername3@u.nus.edu",
+        email: `un${timestamp}@u.nus.edu`,
         username: undefined,
       });
     expect(res.status).toBe(400);
@@ -149,8 +151,8 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        username: "otherusername3",
-        email: "otherusername3@u.nus.edu",
+        email: `pw${timestamp}@u.nus.edu`,
+        username: `pw${timestamp}`,
         password: undefined,
       });
     expect(res.status).toBe(400);
@@ -161,8 +163,8 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        username: "otherusername4",
-        email: "otherusername4@u.nus.edu",
+        email: `sh${timestamp}@u.nus.edu`,
+        username: `sh${timestamp}`,
         password: "Pass1",
       });
     expect(res.status).toBe(400);
@@ -173,8 +175,8 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        username: "otherusername5",
-        email: "otherusername5@u.nus.edu",
+        email: `nn${timestamp}@u.nus.edu`,
+        username: `nn${timestamp}`,
         password: "PasswordOnly",
       });
     expect(res.status).toBe(400);
@@ -185,8 +187,8 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        email: "otherusername6@u.nus.edu",
-        username: "test_user!",
+        email: `sc${timestamp}@u.nus.edu`,
+        username: "invalid_user!",
       });
     expect(res.status).toBe(400);
   });
@@ -196,8 +198,8 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send({
         ...testUser,
-        email: "otherusername7@u.nus.edu",
-        username: "otherusername6",
+        email: `fi${timestamp}@u.nus.edu`,
+        username: `fi${timestamp}`,
         firstName: "Test123",
       });
     expect(res.status).toBe(400);
@@ -257,7 +259,6 @@ describe("POST /api/auth/login", () => {
   });
 
   it("should return action login with token when logging in with email", async () => {
-    // Set verified directly in DB — no OTP flow needed
     await prisma.user.update({
       where: { id: testUserId },
       data: { isVerified: true },
@@ -384,7 +385,6 @@ describe("POST /api/auth/resend-otp", () => {
   });
 
   it("should fail for an already verified user", async () => {
-    // Set verified AFTER beforeEach has already reset to unverified
     await prisma.user.update({
       where: { id: testUserId },
       data: { isVerified: true },
@@ -399,7 +399,6 @@ describe("POST /api/auth/resend-otp", () => {
   });
 
   it("should resend OTP for an unverified user", async () => {
-    // beforeEach already ensures user is unverified — no setup needed
     const res = await request(app).post("/api/auth/resend-otp").send({
       email: testUser.email,
     });
