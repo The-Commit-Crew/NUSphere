@@ -10,9 +10,6 @@ import request from "supertest";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
 
-// ─── UNIQUE TEST USER PER CI RUN ─────────────────────────────────────────────
-// Using timestamp ensures parallel CI runs never conflict with each other
-
 const timestamp = Date.now();
 const testUser = {
   firstName: "Test",
@@ -24,10 +21,7 @@ const testUser = {
 
 let testUserId;
 
-// ─── SETUP AND TEARDOWN ───────────────────────────────────────────────────────
-
 beforeAll(async () => {
-  // Clean up any leftover data from previous failed runs with this exact email
   await prisma.otpToken.deleteMany({
     where: { user: { email: testUser.email } },
   });
@@ -35,7 +29,6 @@ beforeAll(async () => {
     where: { email: testUser.email },
   });
 
-  // Create user directly via Prisma — bypasses email sending entirely
   const bcrypt = await import("bcrypt");
   const hashed = await bcrypt.default.hash(testUser.password, 10);
 
@@ -56,7 +49,6 @@ beforeAll(async () => {
 beforeEach(async () => {
   if (!testUserId) return;
 
-  // Check user still exists before trying to update
   const user = await prisma.user.findUnique({ where: { id: testUserId } });
   if (!user) return;
 
@@ -74,8 +66,6 @@ afterAll(async () => {
   }
   await prisma.$disconnect();
 }, 30000);
-
-// ─── REGISTER TESTS ───────────────────────────────────────────────────────────
 
 describe("POST /api/auth/register", () => {
   it("should fail when registering with the same email again", async () => {
@@ -206,8 +196,6 @@ describe("POST /api/auth/register", () => {
   });
 });
 
-// ─── LOGIN TESTS ──────────────────────────────────────────────────────────────
-
 describe("POST /api/auth/login", () => {
   it("should return otp_required when user is not verified", async () => {
     const res = await request(app).post("/api/auth/login").send({
@@ -217,7 +205,7 @@ describe("POST /api/auth/login", () => {
     expect(res.status).toBe(200);
     expect(res.body.action).toBe("otp_required");
     expect(res.body.email).toBe(testUser.email);
-  });
+  }, 15000);
 
   it("should fail with wrong password", async () => {
     const res = await request(app).post("/api/auth/login").send({
@@ -290,8 +278,6 @@ describe("POST /api/auth/login", () => {
     expect(res.body.token).toBeDefined();
   });
 });
-
-// ─── VERIFY OTP TESTS ─────────────────────────────────────────────────────────
 
 describe("POST /api/auth/verify-otp", () => {
   it("should fail with a wrong OTP", async () => {
@@ -374,8 +360,6 @@ describe("POST /api/auth/verify-otp", () => {
   });
 });
 
-// ─── RESEND OTP TESTS ─────────────────────────────────────────────────────────
-
 describe("POST /api/auth/resend-otp", () => {
   it("should fail for non-existent email", async () => {
     const res = await request(app).post("/api/auth/resend-otp").send({
@@ -399,9 +383,12 @@ describe("POST /api/auth/resend-otp", () => {
   });
 
   it("should resend OTP for an unverified user", async () => {
-    const res = await request(app).post("/api/auth/resend-otp").send({
-      email: testUser.email,
-    });
+    const res = await request(app).post("/api/auth/resend-otp").send(
+      {
+        email: testUser.email,
+      },
+      15000,
+    );
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBeDefined();

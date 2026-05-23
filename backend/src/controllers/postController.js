@@ -5,7 +5,7 @@ import {
 
 export const createPost = async (req, res) => {
   try {
-    const result = await createPostService(req.user.id, req.body);
+    const result = await createPostService(req.user.userId, req.body);
     res.status(201).json(result);
   } catch (error) {
     res.status(400).json({
