@@ -401,11 +401,13 @@ describe("POST /api/auth/verify-otp", () => {
       },
     });
 
+    // First use
     await request(app).post("/api/auth/verify-otp").send({
       email: testUser.email,
       otp: otpRecord.token,
     });
 
+    // Attempt to reuse
     const res = await request(app).post("/api/auth/verify-otp").send({
       email: testUser.email,
       otp: otpRecord.token,
@@ -426,6 +428,7 @@ describe("POST /api/auth/resend-otp", () => {
   });
 
   it("should fail for an already verified user", async () => {
+    // Explicitly set the user to verified to prevent test state bleed
     await prisma.user.update({
       where: { email: testUser.email },
       data: { isVerified: true },
