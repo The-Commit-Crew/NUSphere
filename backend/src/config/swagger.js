@@ -7,7 +7,7 @@ const options = {
       title: "NUSphere API",
       version: "1.0.0",
       description:
-        "API documentation for NUSphere — a community-driven forum and collaboration platform for the NUS community.",
+        "API documentation for NUSphere, a community-driven forum and collaboration platform for the NUS community.",
     },
     servers: [
       {
