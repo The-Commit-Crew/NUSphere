@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Frontend/backend integration
 - GitHub Actions CI pipelines
 - Jest + Supertest test suites
+- Frontend registration, login and OTP verification pages
+- Auth context for global user state management
+- Navbar with dynamic login/logout state
+- Homepage layout with topic sidebar and post list
+- Post cards with upvote count, tags, author and timestamp
+- Create post page
+- Protected routes redirecting unauthenticated users to login
+- React Router navigation between pages
+- Tailwind CSS styling with custom color scheme
 
 ### Fixed
 
