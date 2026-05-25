@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:3000/api'
+const BASE_URL = 'https://nusphere-api.azurewebsites.net/api'
 
 export async function registerUser(data) {
   const response = await fetch(`${BASE_URL}/auth/register`, {
