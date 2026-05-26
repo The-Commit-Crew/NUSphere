@@ -13,17 +13,11 @@ jobs:
     permissions:
       contents: read
 
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
-      GMAIL_USER: ${{ secrets.GMAIL_USER }}
-      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js version
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20.x"
@@ -37,22 +31,29 @@ jobs:
       - name: Generate Prisma Client
         working-directory: backend
         run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Run Prisma migrations
+      - name: Sync Prisma schema
         working-directory: backend
-        run: npx prisma migrate deploy
+        run: npx prisma db push
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Run tests
         working-directory: backend
         run: npm test
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
 
       - name: Zip artifact for deployment
         working-directory: backend
-        run: zip -r release.zip . \
-          -x "*.git*" \
-          -x "node_modules/.cache/*"
+        run: zip -r release.zip . -x "*.git*"
 
-      - name: Upload artifact for deployment job
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: node-app
