@@ -1,4 +1,4 @@
-name: Build and deploy Node.js app to Azure Web App - nusphere-api
+name: Azure Deployment
 
 on:
   push:
