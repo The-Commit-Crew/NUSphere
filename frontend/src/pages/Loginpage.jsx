@@ -19,17 +19,22 @@ function Loginpage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    try {
-      const result = await loginUser(formData)
+     try {
+    // detect if user typed an email or a username
+    const isEmail = formData.email.includes('@')
+    
+    const payload = isEmail
+      ? { email: formData.email, password: formData.password }
+      : { username: formData.email, password: formData.password }
 
-      if (result.action === 'otp_required') {
-        // Account not verified — send to OTP page
-        navigate('/verify-otp', { state: { email: result.email } })
-      } else if (result.action === 'login') {
-        // Fully verified — store user and go home
-        login(result.user, result.token)
-        navigate('/')
-      }
+    const result = await loginUser(payload)
+
+    if (result.action === 'otp_required') {
+      navigate('/verify-otp', { state: { email: result.email } })
+    } else if (result.action === 'login') {
+      login(result.user, result.token)
+      navigate('/')
+    }
     } catch (err) {
       setError(err.message)
     } finally {
