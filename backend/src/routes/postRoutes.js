@@ -1,4 +1,7 @@
-import { authenticateToken } from "../middleware/authMiddleware.js";
+import {
+  authenticateToken,
+  optionalAuth,
+} from "../middleware/authMiddleware.js";
 import {
   createPost,
   getPostById,
@@ -56,8 +59,14 @@ router.post("/", authenticateToken, createPost);
  * /api/posts/{id}:
  *   get:
  *     summary: Get a post by ID
- *     description: Returns a single post along with the author's username, firstName, and lastName, and the topic name.
+ *     description: >
+ *       Returns a single post along with the author's username, firstName,
+ *       and lastName, and the topic name. If a valid JWT token is provided,
+ *       also returns the authenticated user's current vote status on the post.
  *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *       - {}
  *     parameters:
  *       - in: path
  *         name: id
@@ -68,11 +77,22 @@ router.post("/", authenticateToken, createPost);
  *         example: 1
  *     responses:
  *       200:
- *         description: Post with author and topic details
+ *         description: Post with author and topic details, plus optional vote status
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/PostWithDetails'
+ *               allOf:
+ *                 - $ref: '#/components/schemas/PostWithDetails'
+ *                 - type: object
+ *                   properties:
+ *                     userVoteStatus:
+ *                       type: string
+ *                       nullable: true
+ *                       enum: [UP, DOWN]
+ *                       description: >
+ *                         The current user's vote on this post.
+ *                         null if unauthenticated or not yet voted.
+ *                       example: "UP"
  *       400:
  *         description: Post not found
  *         content:
@@ -80,7 +100,7 @@ router.post("/", authenticateToken, createPost);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/:id", getPostById);
+router.get("/:id", optionalAuth, getPostById);
 
 /**
  * @swagger

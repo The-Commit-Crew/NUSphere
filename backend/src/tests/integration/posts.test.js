@@ -138,7 +138,7 @@ describe("POST /api/posts", () => {
 });
 
 describe("GET /api/posts/:id", () => {
-  it("should return 200 with author and topic details", async () => {
+  it("should return 200 with author details and null userVoteStatus for guest", async () => {
     const res = await request(app).get(`/api/posts/${testPostId}`);
 
     expect(res.status).toBe(200);
@@ -147,6 +147,31 @@ describe("GET /api/posts/:id", () => {
     expect(res.body.author.username).toBe(testUser.username);
     expect(res.body.topic).toBeDefined();
     expect(res.body.topic.name).toBeDefined();
+    expect(res.body.userVoteStatus).toBeNull();
+  });
+
+  it("should return correct userVoteStatus for authenticated user", async () => {
+    let res = await request(app)
+      .get(`/api/posts/${testPostId}`)
+      .set("Authorization", `Bearer ${authToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.userVoteStatus).toBeNull();
+
+    await request(app)
+      .post(`/api/posts/${testPostId}/vote`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ voteType: "UP" });
+    res = await request(app)
+      .get(`/api/posts/${testPostId}`)
+      .set("Authorization", `Bearer ${authToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.userVoteStatus).toBe("UP");
+    await request(app)
+      .post(`/api/posts/${testPostId}/vote`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ voteType: "UP" });
   });
 
   it("should return 400 for non-existent post", async () => {

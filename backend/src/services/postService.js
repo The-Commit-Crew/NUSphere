@@ -39,7 +39,7 @@ export const createPostService = async (
   return post;
 };
 
-export const getPostByIdService = async (postId) => {
+export const getPostByIdService = async (postId, userId = null) => {
   const parsedPostId = parseInt(postId);
   const post = await prisma.post.findUnique({
     where: {
@@ -61,7 +61,17 @@ export const getPostByIdService = async (postId) => {
   if (!post) {
     throw new Error("Post not found");
   }
-  return post;
+  let userVoteStatus = null;
+
+  if (userId) {
+    const vote = await prisma.vote.findUnique({
+      where: { userId_postId: { userId, postId: parsedPostId } },
+    });
+    if (vote) {
+      userVoteStatus = vote.voteType;
+    }
+  }
+  return { ...post, userVoteStatus };
 };
 
 export const castVoteService = async (userId, postId, { voteType }) => {
