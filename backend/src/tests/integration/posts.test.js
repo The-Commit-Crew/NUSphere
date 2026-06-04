@@ -50,6 +50,7 @@ beforeAll(async () => {
 }, 30000);
 
 afterAll(async () => {
+  await prisma.vote.deleteMany({ where: { userId: testUserId } });
   await prisma.post.deleteMany({ where: { authorId: testUserId } });
   await prisma.topic.deleteMany({ where: { id: testTopicId } });
   await prisma.otpToken.deleteMany({ where: { userId: testUserId } });
@@ -152,5 +153,79 @@ describe("GET /api/posts/:id", () => {
     const res = await request(app).get("/api/posts/99999");
 
     expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /api/posts/:id/vote", () => {
+  it("should return 401 without token", async () => {
+    const res = await request(app).post(`/api/posts/${testPostId}/vote`).send({
+      voteType: "UP",
+    });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("should return 400 with invalid voteType", async () => {
+    const res = await request(app)
+      .post(`/api/posts/${testPostId}/vote`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        voteType: "UPVOTE",
+      });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("should return 400 for non-existent post", async () => {
+    const res = await request(app)
+      .post("/api/posts/99999/vote")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        voteType: "UP",
+      });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("should return 200 and increment upvote on New Vote (Scenario A)", async () => {
+    const res = await request(app)
+      .post(`/api/posts/${testPostId}/vote`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        voteType: "UP",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(testPostId);
+    expect(res.body.upvoteCount).toBe(1);
+    expect(res.body.downvoteCount).toBe(0);
+  });
+
+  it("should return 200 and adjust counts on Switch Vote (Scenario C)", async () => {
+    const res = await request(app)
+      .post(`/api/posts/${testPostId}/vote`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        voteType: "DOWN",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(testPostId);
+    expect(res.body.upvoteCount).toBe(0);
+    expect(res.body.downvoteCount).toBe(1);
+  });
+
+  it("should return 200 and decrement counts on Toggle Off (Scenario B)", async () => {
+    const res = await request(app)
+      .post(`/api/posts/${testPostId}/vote`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        voteType: "DOWN",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(testPostId);
+    expect(res.body.upvoteCount).toBe(0);
+    expect(res.body.downvoteCount).toBe(0);
   });
 });
