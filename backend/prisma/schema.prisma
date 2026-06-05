@@ -11,6 +11,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum VoteType {
+  UP
+  DOWN
+}
+
 model User {
   id         Int      @id @default(autoincrement())
   firstName  String
@@ -24,6 +29,7 @@ model User {
 
   otpTokens OtpToken[]
   posts     Post[]
+  votes     Vote[]
 }
 
 model OtpToken {
@@ -48,15 +54,30 @@ model Topic {
 }
 
 model Post {
+  id            Int      @id @default(autoincrement())
+  title         String
+  content       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  upvoteCount   Int      @default(0)
+  downvoteCount Int      @default(0)
+  authorId      Int
+  author        User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  topicId       Int
+  topic         Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  votes         Vote[]
+}
+
+model Vote {
   id        Int      @id @default(autoincrement())
-  title     String
-  content   String
+  voteType  VoteType
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  authorId Int
-  author   User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  topicId Int
-  topic   Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  postId Int
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
 }

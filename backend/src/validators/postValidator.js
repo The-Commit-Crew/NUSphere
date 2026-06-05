@@ -19,3 +19,12 @@ export const createPostSchema = Joi.object({
     "any.required": "Please select a topic for your post",
   }),
 });
+
+export const voteSchema = Joi.object({
+  voteType: Joi.string().valid("UP", "DOWN").required().messages({
+    "any.only": "Vote type must be exactly 'UP' or 'DOWN'",
+    "any.required": "Vote type is required",
+    "string.empty": "Vote type cannot be empty",
+    "string.base": "Vote type must be a valid text string",
+  }),
+});
