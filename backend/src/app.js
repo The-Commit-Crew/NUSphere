@@ -7,6 +7,7 @@ import swaggerSpec from "./config/swagger.js";
 import authRoutes from "./routes/authRoutes.js";
 import topicRoutes from "./routes/topicRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
+import projectRoutes from "./routes/projectRoutes.js";
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/auth", authRoutes);
 app.use("/api/topics", topicRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/projects", projectRoutes);
 
 app.get("/", (req, res) => {
   res.json({
