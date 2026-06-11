@@ -249,6 +249,74 @@ const options = {
             message: { type: "string", example: "Something went wrong" },
           },
         },
+        Project: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 1 },
+            title: { type: "string", example: "NLP Research Assistant" },
+            description: {
+              type: "string",
+              example:
+                "Looking for a student to help with sentiment analysis research.",
+            },
+            status: {
+              type: "string",
+              enum: ["OPEN", "IN_PROGRESS", "COMPLETED"],
+              example: "OPEN",
+            },
+            authorId: { type: "integer", example: 1 },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+            skills: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "integer", example: 1 },
+                  name: { type: "string", example: "Python" },
+                },
+              },
+            },
+            author: {
+              type: "object",
+              properties: {
+                firstName: { type: "string", example: "John" },
+                lastName: { type: "string", example: "Doe" },
+                username: { type: "string", example: "johndoe" },
+              },
+            },
+          },
+        },
+
+        ProjectApplication: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 1 },
+            projectId: { type: "integer", example: 1 },
+            userId: { type: "integer", example: 2 },
+            status: {
+              type: "string",
+              enum: ["PENDING", "ACCEPTED", "REJECTED"],
+              example: "PENDING",
+            },
+            message: {
+              type: "string",
+              nullable: true,
+              example: "I have 2 years of NLP experience.",
+            },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+            user: {
+              type: "object",
+              properties: {
+                username: { type: "string", example: "johndoe" },
+                firstName: { type: "string", example: "John" },
+                lastName: { type: "string", example: "Doe" },
+                email: { type: "string", example: "e1234567@u.nus.edu" },
+              },
+            },
+          },
+        },
       },
     },
   },

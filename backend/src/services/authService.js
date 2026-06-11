@@ -7,7 +7,7 @@ import {
   otpSchema,
 } from "../validators/authValidator.js";
 import { generateOtp } from "../utils/generateOtp.js";
-import { sendOtpEmail } from "../utils/sendOtpEmail.js";
+import { sendOtpEmail } from "../utils/sendEmail.js";
 
 const issueOtp = async (userId, email) => {
   await prisma.otpToken.updateMany({
