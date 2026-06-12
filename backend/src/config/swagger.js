@@ -38,9 +38,193 @@ const options = {
             username: { type: "string", example: "johndoe" },
             email: { type: "string", example: "e1234567@u.nus.edu" },
             isVerified: { type: "boolean", example: true },
+            bio: {
+              type: "string",
+              nullable: true,
+              example:
+                "Full-stack developer passionate about building cool stuff.",
+            },
+            githubLink: {
+              type: "string",
+              nullable: true,
+              example: "https://github.com/johndoe",
+            },
+            linkedinLink: {
+              type: "string",
+              nullable: true,
+              example: "https://linkedin.com/in/johndoe",
+            },
+            profilePic: {
+              type: "string",
+              nullable: true,
+              example: "https://example.com/pic.jpg",
+            },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
           },
+        },
+
+        UpdateProfileRequest: {
+          type: "object",
+          properties: {
+            bio: {
+              type: "string",
+              example:
+                "Full-stack developer passionate about building cool stuff.",
+            },
+            githubLink: {
+              type: "string",
+              example: "https://github.com/johndoe",
+            },
+            linkedinLink: {
+              type: "string",
+              example: "https://linkedin.com/in/johndoe",
+            },
+            profilePic: {
+              type: "string",
+              example: "https://example.com/pic.jpg",
+            },
+            skills: {
+              type: "array",
+              items: { type: "string" },
+              example: ["React", "Node.js", "Prisma"],
+            },
+          },
+        },
+
+        UserProfile: {
+          allOf: [
+            { $ref: "#/components/schemas/User" },
+            {
+              type: "object",
+              properties: {
+                skills: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      id: { type: "integer", example: 1 },
+                      name: { type: "string", example: "React" },
+                    },
+                  },
+                },
+                authoredProjects: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/Project" },
+                },
+                applications: {
+                  type: "array",
+                  description:
+                    "Only visible if the logged-in user is viewing their own profile",
+                  items: { $ref: "#/components/schemas/ProjectApplication" },
+                },
+              },
+            },
+          ],
+        },
+
+        UserDashboard: {
+          allOf: [
+            { $ref: "#/components/schemas/User" },
+            {
+              type: "object",
+              properties: {
+                skills: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      id: { type: "integer", example: 1 },
+                      name: { type: "string", example: "React" },
+                    },
+                  },
+                },
+                authoredProjects: {
+                  type: "array",
+                  items: {
+                    allOf: [
+                      { $ref: "#/components/schemas/Project" },
+                      {
+                        type: "object",
+                        properties: {
+                          applications: {
+                            type: "array",
+                            items: {
+                              allOf: [
+                                {
+                                  $ref: "#/components/schemas/ProjectApplication",
+                                },
+                                {
+                                  type: "object",
+                                  properties: {
+                                    user: {
+                                      type: "object",
+                                      properties: {
+                                        id: { type: "integer", example: 2 },
+                                        firstName: {
+                                          type: "string",
+                                          example: "Jane",
+                                        },
+                                        lastName: {
+                                          type: "string",
+                                          example: "Smith",
+                                        },
+                                        username: {
+                                          type: "string",
+                                          example: "janesmith",
+                                        },
+                                        profilePic: {
+                                          type: "string",
+                                          nullable: true,
+                                        },
+                                      },
+                                    },
+                                  },
+                                },
+                              ],
+                            },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+                applications: {
+                  type: "array",
+                  items: {
+                    allOf: [
+                      { $ref: "#/components/schemas/ProjectApplication" },
+                      {
+                        type: "object",
+                        properties: {
+                          project: {
+                            type: "object",
+                            properties: {
+                              id: { type: "integer", example: 1 },
+                              title: {
+                                type: "string",
+                                example: "NLP Research Assistant",
+                              },
+                              status: { type: "string", example: "OPEN" },
+                              author: {
+                                type: "object",
+                                properties: {
+                                  username: {
+                                    type: "string",
+                                    example: "johndoe",
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
         },
 
         OtpToken: {
@@ -249,6 +433,7 @@ const options = {
             message: { type: "string", example: "Something went wrong" },
           },
         },
+
         Project: {
           type: "object",
           properties: {

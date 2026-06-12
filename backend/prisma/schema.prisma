@@ -39,6 +39,12 @@ model User {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  bio          String? @db.Text
+  githubLink   String?
+  linkedinLink String?
+  profilePic   String?
+
+  skills           Skill[]
   otpTokens        OtpToken[]
   posts            Post[]
   votes            Vote[]
@@ -116,6 +122,7 @@ model Skill {
   id       Int       @id @default(autoincrement())
   name     String    @unique
   projects Project[]
+  users    User[]
 }
 
 model ProjectApplication {
