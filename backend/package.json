@@ -8,7 +8,7 @@
     "dev": "nodemon src/server.js",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "test": "node --experimental-vm-modules node_modules/.bin/jest --detectOpenHandles",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest --detectOpenHandles --runInBand",
     "test:coverage": "node --experimental-vm-modules node_modules/.bin/jest --coverage --detectOpenHandles"
   },
   "keywords": [],
