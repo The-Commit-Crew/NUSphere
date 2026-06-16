@@ -333,6 +333,45 @@ const options = {
           },
         },
 
+        Comment: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 1 },
+            content: { type: "string", example: "This is a great point!" },
+            postId: { type: "integer", example: 1 },
+            authorId: { type: "integer", example: 1 },
+            parentId: { type: "integer", nullable: true, example: null },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+
+        CommentWithReplies: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 1 },
+            content: { type: "string", example: "This is a great point!" },
+            author: {
+              type: "object",
+              properties: {
+                username: { type: "string", example: "johndoe" },
+                profilePic: {
+                  type: "string",
+                  nullable: true,
+                  example: "https://example.com/pic.jpg",
+                },
+              },
+            },
+            replies: {
+              type: "array",
+              description: "Nested replies (same structure as parent)",
+              items: {
+                type: "object",
+              },
+            },
+          },
+        },
+
         RegisterRequest: {
           type: "object",
           required: ["firstName", "lastName", "username", "email", "password"],

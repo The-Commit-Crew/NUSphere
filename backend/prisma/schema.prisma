@@ -50,6 +50,7 @@ model User {
   votes            Vote[]
   authoredProjects Project[]            @relation("ProjectAuthor")
   applications     ProjectApplication[]
+  comments         Comment[]
 }
 
 model OtpToken {
@@ -74,18 +75,19 @@ model Topic {
 }
 
 model Post {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   title         String
   content       String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  upvoteCount   Int      @default(0)
-  downvoteCount Int      @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  upvoteCount   Int       @default(0)
+  downvoteCount Int       @default(0)
   authorId      Int
-  author        User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author        User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   topicId       Int
-  topic         Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  topic         Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
   votes         Vote[]
+  comments      Comment[]
 }
 
 model Vote {
@@ -138,4 +140,20 @@ model ProjectApplication {
   updatedAt DateTime @updatedAt
 
   @@unique([projectId, userId])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  postId   Int
+  post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  parentId Int?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentReplies")
 }

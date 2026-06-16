@@ -2,6 +2,7 @@ import {
   createPostService,
   getPostByIdService,
   castVoteService,
+  getAllPostsService,
 } from "../services/postService.js";
 
 export const createPost = async (req, res) => {
@@ -34,6 +35,17 @@ export const castVote = async (req, res) => {
       req.params.id,
       req.body,
     );
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const getAllPosts = async (req, res) => {
+  try {
+    const result = await getAllPostsService();
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({
