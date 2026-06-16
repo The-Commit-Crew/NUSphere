@@ -88,7 +88,7 @@ export async function createPost(data, token) {
   if (!response.ok) throw new Error(result.message || 'Failed to create post')
   return result
 }
-
+// ---- Voting ----
 export async function castVote(postId, voteType, token) {
     const response = await fetch(`${BASE_URL}/posts/${postId}/vote`, {
     method: 'POST',
@@ -102,4 +102,51 @@ export async function castVote(postId, voteType, token) {
   if (!response.ok) throw new Error(result.message || 'Failed to vote')
   return result
 }
+// ---- Comments ----
 
+export async function getPostComments(postId) {
+  const response = await fetch(`${BASE_URL}/posts/${postId}/comments`)
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to fetch comments')
+  return result
+}
+
+export async function createComment(postId, data, token) {
+  const response = await fetch(`${BASE_URL}/posts/${postId}/comments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to create comment')
+  return result
+}
+
+export async function updateComment(commentId, data, token) {
+  const response = await fetch(`${BASE_URL}/comments/${commentId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to update comment')
+  return result
+}
+
+export async function deleteComment(commentId, token) {
+  const response = await fetch(`${BASE_URL}/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to delete comment')
+  return result
+}
