@@ -1,5 +1,8 @@
 import { describe, it, expect } from "@jest/globals";
-import { createPostSchema } from "../../validators/postValidator.js";
+import {
+  createPostSchema,
+  voteSchema,
+} from "../../validators/postValidator.js";
 
 describe("createPostSchema", () => {
   const validPost = {
@@ -59,5 +62,39 @@ describe("createPostSchema", () => {
       topicId: "one",
     });
     expect(error).toBeDefined();
+  });
+});
+
+describe("voteSchema", () => {
+  it("should pass with valid UP vote", () => {
+    const { error } = voteSchema.validate({ voteType: "UP" });
+    expect(error).toBeUndefined();
+  });
+
+  it("should pass with valid DOWN vote", () => {
+    const { error } = voteSchema.validate({ voteType: "DOWN" });
+    expect(error).toBeUndefined();
+  });
+
+  it("should fail when voteType is invalid string", () => {
+    const { error } = voteSchema.validate({ voteType: "SIDEWAYS" });
+    expect(error).toBeDefined();
+    expect(error.details[0].message).toBe(
+      "Vote type must be exactly 'UP' or 'DOWN'",
+    );
+  });
+
+  it("should fail when voteType is missing", () => {
+    const { error } = voteSchema.validate({});
+    expect(error).toBeDefined();
+    expect(error.details[0].message).toBe("Vote type is required");
+  });
+
+  it("should fail when voteType is empty", () => {
+    const { error } = voteSchema.validate({ voteType: "" });
+    expect(error).toBeDefined();
+    expect(error.details[0].message).toBe(
+      "Vote type must be exactly 'UP' or 'DOWN'",
+    );
   });
 });

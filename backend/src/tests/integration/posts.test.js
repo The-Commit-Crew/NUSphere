@@ -50,6 +50,7 @@ beforeAll(async () => {
 }, 30000);
 
 afterAll(async () => {
+  await prisma.vote.deleteMany({ where: { userId: testUserId } });
   await prisma.post.deleteMany({ where: { authorId: testUserId } });
   await prisma.topic.deleteMany({ where: { id: testTopicId } });
   await prisma.otpToken.deleteMany({ where: { userId: testUserId } });
@@ -137,7 +138,7 @@ describe("POST /api/posts", () => {
 });
 
 describe("GET /api/posts/:id", () => {
-  it("should return 200 with author and topic details", async () => {
+  it("should return 200 with author details and null userVoteStatus for guest", async () => {
     const res = await request(app).get(`/api/posts/${testPostId}`);
 
     expect(res.status).toBe(200);
@@ -146,11 +147,143 @@ describe("GET /api/posts/:id", () => {
     expect(res.body.author.username).toBe(testUser.username);
     expect(res.body.topic).toBeDefined();
     expect(res.body.topic.name).toBeDefined();
+    expect(res.body.userVoteStatus).toBeNull();
+  });
+
+  it("should return correct userVoteStatus for authenticated user", async () => {
+    let res = await request(app)
+      .get(`/api/posts/${testPostId}`)
+      .set("Authorization", `Bearer ${authToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.userVoteStatus).toBeNull();
+
+    await request(app)
+      .post(`/api/posts/${testPostId}/vote`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ voteType: "UP" });
+    res = await request(app)
+      .get(`/api/posts/${testPostId}`)
+      .set("Authorization", `Bearer ${authToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.userVoteStatus).toBe("UP");
+    await request(app)
+      .post(`/api/posts/${testPostId}/vote`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ voteType: "UP" });
   });
 
   it("should return 400 for non-existent post", async () => {
     const res = await request(app).get("/api/posts/99999");
 
     expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /api/posts/:id/vote", () => {
+  it("should return 401 without token", async () => {
+    const res = await request(app).post(`/api/posts/${testPostId}/vote`).send({
+      voteType: "UP",
+    });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("should return 400 with invalid voteType", async () => {
+    const res = await request(app)
+      .post(`/api/posts/${testPostId}/vote`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        voteType: "UPVOTE",
+      });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("should return 400 for non-existent post", async () => {
+    const res = await request(app)
+      .post("/api/posts/99999/vote")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        voteType: "UP",
+      });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("should return 200 and increment upvote on New Vote (Scenario A)", async () => {
+    const res = await request(app)
+      .post(`/api/posts/${testPostId}/vote`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        voteType: "UP",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(testPostId);
+    expect(res.body.upvoteCount).toBe(1);
+    expect(res.body.downvoteCount).toBe(0);
+  });
+
+  it("should return 200 and adjust counts on Switch Vote (Scenario C)", async () => {
+    const res = await request(app)
+      .post(`/api/posts/${testPostId}/vote`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        voteType: "DOWN",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(testPostId);
+    expect(res.body.upvoteCount).toBe(0);
+    expect(res.body.downvoteCount).toBe(1);
+  });
+
+  it("should return 200 and decrement counts on Toggle Off (Scenario B)", async () => {
+    const res = await request(app)
+      .post(`/api/posts/${testPostId}/vote`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        voteType: "DOWN",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(testPostId);
+    expect(res.body.upvoteCount).toBe(0);
+    expect(res.body.downvoteCount).toBe(0);
+  });
+});
+
+describe("GET /api/posts", () => {
+  it("should return 200 and a list of posts ordered by newest first", async () => {
+    await request(app)
+      .post("/api/posts")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        title: "The Newest Post",
+        content: "This is a brand new post to test the sorting logic.",
+        topicId: testTopicId,
+      });
+
+    const res = await request(app).get("/api/posts");
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBeGreaterThanOrEqual(2);
+
+    const newestPost = res.body[0];
+    const olderPost = res.body[1];
+
+    expect(new Date(newestPost.createdAt).getTime()).toBeGreaterThanOrEqual(
+      new Date(olderPost.createdAt).getTime(),
+    );
+
+    expect(newestPost.title).toBe("The Newest Post");
+    expect(newestPost.author).toBeDefined();
+    expect(newestPost.author.username).toBeDefined();
+    expect(newestPost.author.firstName).toBeDefined();
+    expect(newestPost.topic).toBeDefined();
+    expect(newestPost.topic.name).toBeDefined();
   });
 });

@@ -6,6 +6,7 @@ import Verifyotppage from './pages/Verifyotppage'
 import Navbar from './components/Navbar'
 import Createpostpage from './pages/Createpostpage'
 import Protectedroute from './components/Protectedroute'
+import Postdetailpage from './pages/Postdetailpage' 
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/register" element={<Registerpage />} />
         <Route path="/verify-otp" element={<Verifyotppage />} />
         <Route path="/create-post" element={<Protectedroute><Createpostpage /></Protectedroute>}/>
+        <Route path="/posts/:id" element={<Postdetailpage/>}/>
       </Routes>
     </div>
   )

@@ -1,5 +1,5 @@
 import prisma from "../config/prisma.js";
-import { createPostSchema } from "../validators/postValidator.js";
+import { createPostSchema, voteSchema } from "../validators/postValidator.js";
 
 export const createPostService = async (
   userId,
@@ -39,7 +39,7 @@ export const createPostService = async (
   return post;
 };
 
-export const getPostByIdService = async (postId) => {
+export const getPostByIdService = async (postId, userId = null) => {
   const parsedPostId = parseInt(postId);
   const post = await prisma.post.findUnique({
     where: {
@@ -61,5 +61,105 @@ export const getPostByIdService = async (postId) => {
   if (!post) {
     throw new Error("Post not found");
   }
-  return post;
+  let userVoteStatus = null;
+
+  if (userId) {
+    const vote = await prisma.vote.findUnique({
+      where: { userId_postId: { userId, postId: parsedPostId } },
+    });
+    if (vote) {
+      userVoteStatus = vote.voteType;
+    }
+  }
+  return { ...post, userVoteStatus };
+};
+
+export const castVoteService = async (userId, postId, { voteType }) => {
+  const { error } = voteSchema.validate({ voteType });
+  if (error) {
+    throw new Error(error.details[0].message);
+  }
+  const parsedPostId = parseInt(postId);
+
+  const post = await prisma.post.findUnique({ where: { id: parsedPostId } });
+  if (!post) {
+    throw new Error("Post not found");
+  }
+
+  const existingVote = await prisma.vote.findUnique({
+    where: { userId_postId: { userId, postId: parsedPostId } },
+  });
+
+  let updatedPost;
+  if (!existingVote) {
+    [, updatedPost] = await prisma.$transaction([
+      prisma.vote.create({
+        data: { voteType, userId, postId: parsedPostId },
+      }),
+      prisma.post.update({
+        where: {
+          id: parsedPostId,
+        },
+        data:
+          voteType === "UP"
+            ? { upvoteCount: { increment: 1 } }
+            : { downvoteCount: { increment: 1 } },
+      }),
+    ]);
+  } else if (existingVote.voteType === voteType) {
+    [, updatedPost] = await prisma.$transaction([
+      prisma.vote.delete({
+        where: { userId_postId: { userId, postId: parsedPostId } },
+      }),
+      prisma.post.update({
+        where: { id: parsedPostId },
+        data:
+          voteType === "UP"
+            ? { upvoteCount: { decrement: 1 } }
+            : { downvoteCount: { decrement: 1 } },
+      }),
+    ]);
+  } else {
+    [, updatedPost] = await prisma.$transaction([
+      prisma.vote.update({
+        where: { userId_postId: { userId, postId: parsedPostId } },
+        data: { voteType },
+      }),
+      prisma.post.update({
+        where: { id: parsedPostId },
+        data:
+          voteType === "UP"
+            ? {
+                upvoteCount: { increment: 1 },
+                downvoteCount: { decrement: 1 },
+              }
+            : {
+                upvoteCount: { decrement: 1 },
+                downvoteCount: { increment: 1 },
+              },
+      }),
+    ]);
+  }
+  return {
+    id: updatedPost.id,
+    upvoteCount: updatedPost.upvoteCount,
+    downvoteCount: updatedPost.downvoteCount,
+  };
+};
+
+export const getAllPostsService = async () => {
+  const posts = await prisma.post.findMany({
+    include: {
+      author: {
+        select: {
+          username: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+      topic: { select: { name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  return posts;
 };
