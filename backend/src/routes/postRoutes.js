@@ -6,6 +6,7 @@ import {
   createPost,
   getPostById,
   castVote,
+  getAllPosts,
 } from "../controllers/postController.js";
 import {
   createComment,
@@ -57,6 +58,31 @@ const router = Router();
  *               $ref: '#/components/schemas/Error'
  */
 router.post("/", authenticateToken, createPost);
+
+/**
+ * @swagger
+ * /api/posts:
+ *   get:
+ *     summary: Get all posts
+ *     description: Retrieves a global feed of all posts across all topics, ordered by the newest first.
+ *     tags: [Posts]
+ *     responses:
+ *       200:
+ *         description: A list of all posts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/PostWithDetails'
+ *       400:
+ *         description: Failed to fetch posts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get("/", getAllPosts);
 
 /**
  * @swagger

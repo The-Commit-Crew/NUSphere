@@ -146,3 +146,20 @@ export const castVoteService = async (userId, postId, { voteType }) => {
     downvoteCount: updatedPost.downvoteCount,
   };
 };
+
+export const getAllPostsService = async () => {
+  const posts = await prisma.post.findMany({
+    include: {
+      author: {
+        select: {
+          username: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+      topic: { select: { name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  return posts;
+};
