@@ -254,3 +254,36 @@ describe("POST /api/posts/:id/vote", () => {
     expect(res.body.downvoteCount).toBe(0);
   });
 });
+
+describe("GET /api/posts", () => {
+  it("should return 200 and a list of posts ordered by newest first", async () => {
+    await request(app)
+      .post("/api/posts")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        title: "The Newest Post",
+        content: "This is a brand new post to test the sorting logic.",
+        topicId: testTopicId,
+      });
+
+    const res = await request(app).get("/api/posts");
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBeGreaterThanOrEqual(2);
+
+    const newestPost = res.body[0];
+    const olderPost = res.body[1];
+
+    expect(new Date(newestPost.createdAt).getTime()).toBeGreaterThanOrEqual(
+      new Date(olderPost.createdAt).getTime(),
+    );
+
+    expect(newestPost.title).toBe("The Newest Post");
+    expect(newestPost.author).toBeDefined();
+    expect(newestPost.author.username).toBeDefined();
+    expect(newestPost.author.firstName).toBeDefined();
+    expect(newestPost.topic).toBeDefined();
+    expect(newestPost.topic.name).toBeDefined();
+  });
+});
