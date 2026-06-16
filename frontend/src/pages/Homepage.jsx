@@ -13,17 +13,6 @@ function Homepage() {
 
       {/* Top bar */}
       <div style={{ borderBottom: '1px solid #E8E0D8' }} className="flex items-center gap-6 mb-6 pb-3">
-        <button
-          onClick={() => setSelectedTopicId(null)}
-          style={selectedTopicId === null
-            ? { backgroundColor: '#C4552A', color: '#fff' }
-            : { color: '#1A1512' }
-          }
-          className="px-4 py-1.5 rounded-full text-sm font-medium hover:opacity-80"
-        >
-          All
-        </button>
-
         {user && (
           <Link
             to="/create-post"

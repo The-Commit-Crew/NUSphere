@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { getAllTopics, getTopicById } from '../services/Authservice'
+import { useNavigate } from 'react-router-dom'
 
 function Postlist({ selectedTopicId }) {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const navigate = useNavigate() 
 
   useEffect(() => {
     async function fetchPosts() {
@@ -86,6 +88,7 @@ function Postlist({ selectedTopicId }) {
       {posts.map((post) => (
         <div
           key={post.id}
+          onClick={() => navigate(`/posts/${post.id}`)}
           style={{ backgroundColor: '#FFFFFF', border: '1px solid #E8E0D8' }}
           className="flex gap-4 p-4 rounded-lg hover:opacity-90 cursor-pointer"
         >

@@ -1,4 +1,4 @@
-const BASE_URL = 'https://nusphere-api.azurewebsites.net/api'
+const BASE_URL = import.meta.env.VITE_API_URL
 
 export async function registerUser(data) {
   const response = await fetch(`${BASE_URL}/auth/register`, {
@@ -62,8 +62,14 @@ export async function getTopicById(topicId) {
 
 // ---- Posts ----
 
-export async function getPostById(postId) {
-  const response = await fetch(`${BASE_URL}/posts/${postId}`)
+export async function getPostById(postId, token) {
+  const headers = {}
+  if (token) {
+  headers.Authorization = `Bearer ${token}`
+}
+  const response = await fetch(`${BASE_URL}/posts/${postId}`,{
+    headers,
+  })
   const result = await response.json()
   if (!response.ok) throw new Error(result.message || 'Failed to fetch post')
   return result
@@ -82,3 +88,18 @@ export async function createPost(data, token) {
   if (!response.ok) throw new Error(result.message || 'Failed to create post')
   return result
 }
+
+export async function castVote(postId, voteType, token) {
+    const response = await fetch(`${BASE_URL}/posts/${postId}/vote`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ voteType }),
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to vote')
+  return result
+}
+
