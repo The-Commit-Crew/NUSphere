@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
-import { getAllTopics, getTopicById } from '../services/Authservice'
+import { getAllTopics, getTopicById, castVote } from '../services/Authservice'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 function Postlist({ selectedTopicId }) {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const navigate = useNavigate() 
+  const [voteMessage, setVoteMessage] = useState('')
+  const navigate = useNavigate()
+  const { token } = useAuth()
 
   useEffect(() => {
     async function fetchPosts() {
@@ -14,16 +17,12 @@ function Postlist({ selectedTopicId }) {
       setError('')
       try {
         if (selectedTopicId === null) {
-          // Load all topics then flatten all their posts
           const topics = await getAllTopics()
-          const allPostsPromises = topics.map((topic) =>
-            getTopicById(topic.id)
-          )
+          const allPostsPromises = topics.map((topic) => getTopicById(topic.id))
           const allTopics = await Promise.all(allPostsPromises)
           const allPosts = allTopics.flatMap((topic) => topic.posts)
           setPosts(allPosts)
         } else {
-          // Load posts for specific topic
           const topic = await getTopicById(selectedTopicId)
           setPosts(topic.posts)
         }
@@ -36,6 +35,30 @@ function Postlist({ selectedTopicId }) {
     }
     fetchPosts()
   }, [selectedTopicId])
+
+  async function handleVote(e, postId, voteType) {
+    e.stopPropagation()
+    if (!token) {
+      setVoteMessage('Please log in to vote')
+      setTimeout(() => setVoteMessage(''), 3000)
+      return
+    }
+    try {
+      const result = await castVote(postId, voteType, token)
+      setPosts(prev => prev.map(post =>
+        post.id === postId
+          ? {
+              ...post,
+              upvoteCount: result.upvoteCount,
+              downvoteCount: result.downvoteCount,
+            }
+          : post
+      ))
+      setVoteMessage('')
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   function timeAgo(dateString) {
     const now = new Date()
@@ -74,7 +97,6 @@ function Postlist({ selectedTopicId }) {
   return (
     <div className="flex-1 flex flex-col gap-3">
 
-      {/* Header */}
       <div className="flex items-center justify-between mb-1">
         <span style={{ color: '#1A1512' }} className="text-sm font-medium">
           {posts.length} questions
@@ -84,7 +106,12 @@ function Postlist({ selectedTopicId }) {
         </span>
       </div>
 
-      {/* Post cards */}
+      {voteMessage && (
+        <p style={{ color: '#C4552A' }} className="text-xs">
+          {voteMessage}
+        </p>
+      )}
+
       {posts.map((post) => (
         <div
           key={post.id}
@@ -93,11 +120,27 @@ function Postlist({ selectedTopicId }) {
           className="flex gap-4 p-4 rounded-lg hover:opacity-90 cursor-pointer"
         >
 
-          {/* Upvote column */}
+          {/* Vote column */}
           <div className="flex flex-col items-center gap-1 pt-1">
-            <button style={{ color: '#9A8880' }} className="text-sm hover:opacity-70">▲</button>
+            <button
+              onClick={(e) => handleVote(e, post.id, 'UP')}
+              style={{ color: '#9A8880' }}
+              className="text-sm hover:opacity-70"
+            >
+              ▲
+            </button>
             <span style={{ color: '#1A1512' }} className="text-sm font-medium">
-              0
+              {post.upvoteCount}
+            </span>
+            <button
+              onClick={(e) => handleVote(e, post.id, 'DOWN')}
+              style={{ color: '#9A8880' }}
+              className="text-sm hover:opacity-70"
+            >
+              ▼
+            </button>
+            <span style={{ color: '#1A1512' }} className="text-sm font-medium">
+              {post.downvoteCount}
             </span>
           </div>
 
@@ -110,13 +153,15 @@ function Postlist({ selectedTopicId }) {
               {post.content?.substring(0, 120)}...
             </p>
 
-            {/* Meta */}
             <div className="flex items-center gap-2 flex-wrap">
               <span
                 style={{ backgroundColor: '#F5F0EB', color: '#9A8880', fontSize: '10px' }}
                 className="px-2 py-0.5 rounded-full font-medium"
               >
                 {post.topic?.name}
+              </span>
+              <span style={{ color: '#9A8880', fontSize: '11px' }}>
+                💬
               </span>
               <span style={{ color: '#9A8880', fontSize: '11px', marginLeft: 'auto' }}>
                 u/{post.author?.username} · 🕐 {timeAgo(post.createdAt)}
