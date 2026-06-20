@@ -541,6 +541,46 @@ const options = {
             },
           },
         },
+        Notification: {
+          type: "object",
+          properties: {
+            id: {
+              type: "integer",
+              description: "Unique identifier for the notification",
+            },
+            userId: {
+              type: "integer",
+              description: "ID of the user receiving the notification",
+            },
+            type: {
+              type: "string",
+              enum: ["REPLY", "VOTE", "MENTION", "PROJECT_APPLICATION"],
+              description: "The category of the notification",
+            },
+            message: {
+              type: "string",
+              description: "The main notification text",
+            },
+            isRead: {
+              type: "boolean",
+              description: "Whether the user has seen this notification yet",
+            },
+            postId: {
+              type: "integer",
+              nullable: true,
+              description: "ID of the associated post (if applicable)",
+            },
+            commentId: {
+              type: "integer",
+              nullable: true,
+              description: "ID of the associated comment (if applicable)",
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+            },
+          },
+        },
       },
     },
   },

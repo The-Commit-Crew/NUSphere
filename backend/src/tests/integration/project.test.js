@@ -1,7 +1,18 @@
-import { describe, it, beforeAll, afterAll, expect } from "@jest/globals";
+import {
+  describe,
+  it,
+  beforeAll,
+  afterAll,
+  afterEach,
+  expect,
+  jest,
+} from "@jest/globals";
 import request from "supertest";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
+import notificationEmitter from "../../utils/notificationEmitter.js";
+
+jest.spyOn(notificationEmitter, "emit").mockImplementation(() => {});
 
 const timestamp = Date.now();
 
@@ -87,6 +98,10 @@ afterAll(async () => {
   });
   await prisma.$disconnect();
 }, 30000);
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
 
 describe("POST /api/projects", () => {
   it("should return 401 without token", async () => {
@@ -258,6 +273,18 @@ describe("POST /api/projects/:id/apply", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Project application successful");
+
+    expect(notificationEmitter.emit).toHaveBeenCalledTimes(1);
+    expect(notificationEmitter.emit).toHaveBeenCalledWith(
+      "notification",
+      expect.objectContaining({
+        userId: authorId,
+        type: "PROJECT_APPLICATION",
+        message: "Someone applied to your project!",
+        postId: null,
+        commentId: null,
+      }),
+    );
   });
 });
 

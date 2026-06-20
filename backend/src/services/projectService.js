@@ -6,6 +6,7 @@ import {
   updateProjectSchema,
 } from "../validators/projectValidator.js";
 import { sendProjectUpdateEmail } from "../utils/sendEmail.js";
+import notificationEmitter from "../utils/notificationEmitter.js";
 
 export const createProjectService = async (
   authorId,
@@ -184,6 +185,13 @@ export const applyToProjectService = async (
   if (!projectApplication) {
     throw new Error("Error in project application");
   }
+  notificationEmitter.emit("notification", {
+    userId: project.authorId,
+    type: "PROJECT_APPLICATION",
+    message: "Someone applied to your project!",
+    postId: null,
+    commentId: null,
+  });
   return { message: "Project application successful" };
 };
 

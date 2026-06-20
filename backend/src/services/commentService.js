@@ -3,6 +3,8 @@ import {
   createCommentSchema,
   updateCommentSchema,
 } from "../validators/commentValidator.js";
+import notificationEmitter from "../utils/notificationEmitter.js";
+import { extractMentions } from "../utils/mentionParser.js";
 
 export const createCommentService = async (
   postId,
@@ -19,10 +21,11 @@ export const createCommentService = async (
   if (!post) {
     throw new Error("Post not found");
   }
+  let parentAuthorId = null;
   if (parentId) {
     const comment = await prisma.comment.findUnique({
       where: { id: parentId },
-      select: { postId: true },
+      select: { postId: true, authorId: true },
     });
     if (!comment) {
       throw new Error("Parent comment not found");
@@ -30,6 +33,7 @@ export const createCommentService = async (
     if (comment.postId != postId) {
       throw new Error("Parent comment does not belong to this post");
     }
+    parentAuthorId = comment.authorId;
   }
   const newComment = await prisma.comment.create({
     data: {
@@ -39,6 +43,48 @@ export const createCommentService = async (
       parentId: parentId ?? null,
     },
   });
+
+  let alreadyNotifiedUserId = null;
+  if (parentId && parentAuthorId != authorId) {
+    alreadyNotifiedUserId = parentAuthorId;
+    notificationEmitter.emit("notification", {
+      userId: parentAuthorId,
+      type: "REPLY",
+      message: "Someone replied to your comment!",
+      postId,
+      commentId: newComment.id,
+    });
+  } else if (!parentId && post.authorId != authorId) {
+    alreadyNotifiedUserId = post.authorId;
+    notificationEmitter.emit("notification", {
+      userId: post.authorId,
+      type: "REPLY",
+      message: "Someone commented on your post!",
+      postId,
+      commentId: newComment.id,
+    });
+  }
+
+  const mentionedUsernames = extractMentions(content);
+  if (mentionedUsernames.length > 0) {
+    const mentionedUsers = await prisma.user.findMany({
+      where: {
+        username: { in: mentionedUsernames },
+      },
+      select: { id: true },
+    });
+    mentionedUsers.forEach((user) => {
+      if (user.id != authorId && user.id != alreadyNotifiedUserId) {
+        notificationEmitter.emit("notification", {
+          userId: user.id,
+          type: "MENTION",
+          message: "Someone mentioned you in a comment!",
+          postId: post.id,
+          commentId: newComment.id,
+        });
+      }
+    });
+  }
   return newComment;
 };
 
