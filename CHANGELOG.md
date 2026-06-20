@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Project collaboration backend
 - User profile and dashboard backend
 - Threaded comments backend
+- Notifications backend
 
 ### Fixed
 

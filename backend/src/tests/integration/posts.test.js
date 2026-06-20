@@ -1,11 +1,23 @@
-import { describe, it, beforeAll, afterAll, expect } from "@jest/globals";
+import {
+  describe,
+  it,
+  beforeAll,
+  afterAll,
+  afterEach,
+  expect,
+  jest,
+} from "@jest/globals";
 import request from "supertest";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
+import notificationEmitter from "../../utils/notificationEmitter.js";
+
+jest.spyOn(notificationEmitter, "emit").mockImplementation(() => {});
 
 const timestamp = Date.now();
 
 let authToken;
+let voterToken;
 let testUserId;
 let testTopicId;
 let testPostId;
@@ -47,6 +59,23 @@ beforeAll(async () => {
     },
   });
   testTopicId = topic.id;
+
+  const voterUser = await prisma.user.create({
+    data: {
+      firstName: "Voter",
+      lastName: "Tester",
+      username: `voter${timestamp}`,
+      email: `voter${timestamp}@u.nus.edu`,
+      password: hashed,
+      isVerified: true,
+    },
+  });
+
+  const voterLogin = await request(app)
+    .post("/api/auth/login")
+    .send({ email: voterUser.email, password: testUser.password });
+
+  voterToken = voterLogin.body.token;
 }, 30000);
 
 afterAll(async () => {
@@ -57,6 +86,10 @@ afterAll(async () => {
   await prisma.user.deleteMany({ where: { id: testUserId } });
   await prisma.$disconnect();
 }, 30000);
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
 
 describe("POST /api/posts", () => {
   it("should return 401 without token", async () => {
@@ -215,7 +248,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 200 and increment upvote on New Vote (Scenario A)", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Authorization", `Bearer ${voterToken}`)
       .send({
         voteType: "UP",
       });
@@ -224,12 +257,22 @@ describe("POST /api/posts/:id/vote", () => {
     expect(res.body.id).toBe(testPostId);
     expect(res.body.upvoteCount).toBe(1);
     expect(res.body.downvoteCount).toBe(0);
+
+    expect(notificationEmitter.emit).toHaveBeenCalledTimes(1);
+    expect(notificationEmitter.emit).toHaveBeenCalledWith(
+      "notification",
+      expect.objectContaining({
+        type: "VOTE",
+        postId: testPostId,
+        message: "Someone upvoted your post!",
+      }),
+    );
   });
 
   it("should return 200 and adjust counts on Switch Vote (Scenario C)", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Authorization", `Bearer ${voterToken}`)
       .send({
         voteType: "DOWN",
       });
@@ -243,7 +286,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 200 and decrement counts on Toggle Off (Scenario B)", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Authorization", `Bearer ${voterToken}`)
       .send({
         voteType: "DOWN",
       });

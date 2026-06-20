@@ -1,5 +1,7 @@
 import prisma from "../config/prisma.js";
 import { createPostSchema, voteSchema } from "../validators/postValidator.js";
+import notificationEmitter from "../utils/notificationEmitter.js";
+import { extractMentions } from "../utils/mentionParser.js";
 
 export const createPostService = async (
   userId,
@@ -35,7 +37,26 @@ export const createPostService = async (
       },
     },
   });
-
+  const mentionedUsernames = extractMentions(content);
+  if (mentionedUsernames.length > 0) {
+    const mentionedUsers = await prisma.user.findMany({
+      where: {
+        username: { in: mentionedUsernames },
+      },
+      select: { id: true },
+    });
+    mentionedUsers.forEach((user) => {
+      if (user.id != userId) {
+        notificationEmitter.emit("notification", {
+          userId: user.id,
+          type: "MENTION",
+          message: "Someone mentioned you in a post!",
+          postId: post.id,
+          commentId: null,
+        });
+      }
+    });
+  }
   return post;
 };
 
@@ -139,6 +160,19 @@ export const castVoteService = async (userId, postId, { voteType }) => {
               },
       }),
     ]);
+  }
+  if (
+    voteType == "UP" &&
+    post.authorId != userId &&
+    (!existingVote || existingVote.voteType == "DOWN")
+  ) {
+    notificationEmitter.emit("notification", {
+      userId: post.authorId,
+      type: "VOTE",
+      message: "Someone upvoted your post!",
+      postId: parsedPostId,
+      commentId: null,
+    });
   }
   return {
     id: updatedPost.id,
