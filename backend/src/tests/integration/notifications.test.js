@@ -10,7 +10,6 @@ import {
 import request from "supertest";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
-import notificationEmitter from "../../utils/notificationEmitter.js";
 
 jest.mock("../../utils/notificationEmitter.js", () => ({
   default: { emit: jest.fn() },
@@ -19,7 +18,6 @@ jest.mock("../../utils/notificationEmitter.js", () => ({
 const timestamp = Date.now();
 
 let authToken1;
-let authToken2;
 let testUser1Id;
 let testUser2Id;
 let testTopicId;
@@ -61,11 +59,6 @@ beforeAll(async () => {
     .post("/api/auth/login")
     .send({ email: user1.email, password });
   authToken1 = loginRes1.body.token;
-
-  const loginRes2 = await request(app)
-    .post("/api/auth/login")
-    .send({ email: user2.email, password });
-  authToken2 = loginRes2.body.token;
 
   const topic = await prisma.topic.create({
     data: {

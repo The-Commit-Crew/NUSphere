@@ -16,7 +16,7 @@ import "./services/notificationService.js";
 
 const app = express();
 
-const allowedOrigins = [
+export const allowedOrigins = [
   "http://localhost:5173",
   "https://nusphere-web.vercel.app",
 ];
