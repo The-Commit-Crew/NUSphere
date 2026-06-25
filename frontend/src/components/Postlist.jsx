@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getAllTopics, getTopicById, castVote } from '../services/Authservice'
+import { getTopicById, getAllPosts, castVote } from '../services/Authservice'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -11,30 +11,27 @@ function Postlist({ selectedTopicId }) {
   const navigate = useNavigate()
   const { token } = useAuth()
 
-  useEffect(() => {
-    async function fetchPosts() {
-      setLoading(true)
-      setError('')
-      try {
-        if (selectedTopicId === null) {
-          const topics = await getAllTopics()
-          const allPostsPromises = topics.map((topic) => getTopicById(topic.id))
-          const allTopics = await Promise.all(allPostsPromises)
-          const allPosts = allTopics.flatMap((topic) => topic.posts)
-          setPosts(allPosts)
-        } else {
-          const topic = await getTopicById(selectedTopicId)
-          setPosts(topic.posts)
+    useEffect(() => {
+      async function fetchPosts() {
+        setLoading(true)
+        setError('')
+        try {
+          if (selectedTopicId === null) {
+            const allPosts = await getAllPosts()
+            setPosts(allPosts)
+          } else {
+            const topic = await getTopicById(selectedTopicId)
+            setPosts(topic.posts)
+          }
+        } catch (err) {
+          setError('Failed to load posts')
+          console.error(err)
+        } finally {
+          setLoading(false)
         }
-      } catch (err) {
-        setError('Failed to load posts')
-        console.error(err)
-      } finally {
-        setLoading(false)
       }
-    }
-    fetchPosts()
-  }, [selectedTopicId])
+      fetchPosts()
+    }, [selectedTopicId])
 
   async function handleVote(e, postId, voteType) {
     e.stopPropagation()
