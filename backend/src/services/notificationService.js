@@ -1,11 +1,12 @@
 import prisma from "../config/prisma.js";
 import notificationEmitter from "../utils/notificationEmitter.js";
+import { getIo } from "../utils/socket.js";
 
 notificationEmitter.on(
   "notification",
   async ({ userId, type, message, postId, commentId }) => {
     try {
-      await prisma.notification.create({
+      const newNotification = await prisma.notification.create({
         data: {
           userId,
           type,
@@ -14,7 +15,15 @@ notificationEmitter.on(
           commentId,
         },
       });
+      try {
+        const io = getIo();
+        io.to(userId.toString()).emit("newNotification", newNotification);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error("Socket broadcast skipped or failed:", error.message);
+      }
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Background Notification Error: ", error.message);
     }
   },
