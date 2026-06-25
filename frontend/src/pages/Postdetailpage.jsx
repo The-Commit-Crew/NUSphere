@@ -10,21 +10,23 @@ import {
   updateComment,
   deleteComment,
 } from '../services/Authservice'
+
 function CommentBlock({
   comment,
-  parentId,
+  parentId = null,
   user,
   editingId,
   editContent,
+  setEditContent,
   replyingTo,
   replyContent,
-  setEditingId,
-  setEditContent,
-  setReplyingTo,
   setReplyContent,
+  setEditingId,
+  setReplyingTo,
   handleEdit,
   handleDelete,
   handleReply,
+  setPendingDelete,
 }) {
   const isAuthor = user && user.username === comment.author?.username
   const isEditing = editingId === comment.id
@@ -63,7 +65,7 @@ function CommentBlock({
                 Edit
               </button>
               <button
-                onClick={() => handleDelete(comment.id, parentId)}
+                onClick={() => setPendingDelete({ commentId: comment.id, parentId })}
                 style={{ color: '#C4552A' }}
                 className="text-xs hover:underline"
               >
@@ -155,20 +157,22 @@ function CommentBlock({
           user={user}
           editingId={editingId}
           editContent={editContent}
+          setEditContent={setEditContent}
           replyingTo={replyingTo}
           replyContent={replyContent}
-          setEditingId={setEditingId}
-          setEditContent={setEditContent}
-          setReplyingTo={setReplyingTo}
           setReplyContent={setReplyContent}
+          setEditingId={setEditingId}
+          setReplyingTo={setReplyingTo}
           handleEdit={handleEdit}
           handleDelete={handleDelete}
           handleReply={handleReply}
+          setPendingDelete={setPendingDelete}
         />
       ))}
     </div>
   )
 }
+
 function Postdetailpage() {
   const [post, setPost] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -186,7 +190,7 @@ function Postdetailpage() {
   const [editingId, setEditingId] = useState(null)
   const [editContent, setEditContent] = useState('')
   const [commentError, setCommentError] = useState('')
-  const [pendingDelete, setPendingDelete] = useState(null) 
+  const [pendingDelete, setPendingDelete] = useState(null)
 
   const { id } = useParams()
   const { token, user } = useAuth()
@@ -314,10 +318,7 @@ function Postdetailpage() {
       setPendingDelete(null)
     }
   }
-<<<<<<< HEAD
-=======
 
->>>>>>> main
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -428,27 +429,6 @@ function Postdetailpage() {
           </p>
         )}
 
-<<<<<<< HEAD
-      {comments.map(comment => (
-      <CommentBlock
-      key={comment.id}
-      comment={comment}
-      parentId={null}
-      user={user}
-      editingId={editingId}
-      editContent={editContent}
-      replyingTo={replyingTo}
-      replyContent={replyContent}
-      setEditingId={setEditingId}
-      setEditContent={setEditContent}
-      setReplyingTo={setReplyingTo}
-      setReplyContent={setReplyContent}
-      handleEdit={handleEdit}
-      handleDelete={handleDelete}
-      handleReply={handleReply}
-    />
-))}
-=======
         {comments.map(comment => (
           <CommentBlock
             key={comment.id}
@@ -465,15 +445,16 @@ function Postdetailpage() {
             handleEdit={handleEdit}
             handleDelete={handleDelete}
             handleReply={handleReply}
-            setPendingDelete={setPendingDelete}/>
+            setPendingDelete={setPendingDelete}
+          />
         ))}
+
         <DeleteConfirmDialog
-        open={pendingDelete !== null}
-        message="Delete this comment? This can't be undone."
-        onCancel={() => setPendingDelete(null)}
-        onConfirm={() => handleDelete(pendingDelete.commentId, pendingDelete.parentId)}
-      />
->>>>>>> main
+          open={pendingDelete !== null}
+          message="Delete this comment? This can't be undone."
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => handleDelete(pendingDelete.commentId, pendingDelete.parentId)}
+        />
 
         <div className="mt-6 flex flex-col gap-3">
           <textarea
@@ -506,165 +487,5 @@ function Postdetailpage() {
     </div>
   )
 }
-function CommentBlock({
-  comment,
-  parentId = null,
-  user,
-  editingId,
-  editContent,
-  setEditContent,
-  replyingTo,
-  replyContent,
-  setReplyContent,
-  setEditingId,
-  setReplyingTo,
-  handleEdit,
-  handleDelete,
-  handleReply,
-  setPendingDelete,
-}) {
-  const isAuthor = user && user.username === comment.author?.username
-  const isEditing = editingId === comment.id
-  const isReplying = replyingTo === comment.id
 
-  return (
-    <div
-      style={{
-        borderLeft: parentId ? '2px solid #E8E0D8' : 'none',
-        marginLeft: parentId ? '24px' : '0',
-        paddingLeft: parentId ? '16px' : '0',
-      }}
-      className="mt-4"
-    >
-      <div
-        style={{
-          backgroundColor: '#F5F0EB',
-          border: '1px solid #E8E0D8',
-        }}
-        className="rounded-lg p-4"
-      >
-        <div className="flex items-center justify-between mb-2">
-          <span style={{ color: '#9A8880' }} className="text-sm font-medium">
-            u/{comment.author?.username}
-          </span>
-          {isAuthor && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setEditingId(comment.id)
-                  setEditContent(comment.content)
-                }}
-                style={{ color: '#9A8880' }}
-                className="text-xs hover:underline"
-              >
-                Edit
-              </button>
-              <button
-              onClick={() => setPendingDelete({ commentId: comment.id, parentId })}
-              style={{ color: '#C4552A' }}
-              className="text-xs hover:underline"
-            >
-              Delete
-            </button>
-            </div>
-          )}
-        </div>
-
-        {isEditing ? (
-          <div className="flex flex-col gap-2">
-            <textarea
-              value={editContent}
-              onChange={e => setEditContent(e.target.value)}
-              style={{
-                border: '1px solid #E8E0D8',
-                backgroundColor: '#FFFFFF',
-                color: '#1A1512',
-              }}
-              className="w-full rounded-lg p-3 text-sm resize-none"
-              rows={3}
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleEdit(comment.id)}
-                style={{ backgroundColor: '#C4552A', color: '#FFFFFF' }}
-                className="px-3 py-1 rounded-full text-xs font-medium"
-              >
-                Save
-              </button>
-              <button
-                onClick={() => { setEditingId(null); setEditContent('') }}
-                style={{ color: '#9A8880' }}
-                className="px-3 py-1 text-xs"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <p style={{ color: '#1A1512' }} className="text-sm">
-            {comment.content}
-          </p>
-        )}
-
-        {!parentId && !isEditing && (
-          <button
-            onClick={() => {
-              setReplyingTo(isReplying ? null : comment.id)
-              setReplyContent('')
-            }}
-            style={{ color: '#9A8880' }}
-            className="text-xs mt-2 hover:underline"
-          >
-            {isReplying ? 'Cancel' : 'Reply'}
-          </button>
-        )}
-      </div>
-
-      {isReplying && (
-        <div className="mt-2 ml-6 flex flex-col gap-2">
-          <textarea
-            value={replyContent}
-            onChange={e => setReplyContent(e.target.value)}
-            placeholder="Write a reply..."
-            style={{
-              border: '1px solid #E8E0D8',
-              backgroundColor: '#FFFFFF',
-              color: '#1A1512',
-            }}
-            className="w-full rounded-lg p-3 text-sm resize-none"
-            rows={2}
-          />
-          <button
-            onClick={() => handleReply(comment.id)}
-            style={{ backgroundColor: '#C4552A', color: '#FFFFFF' }}
-            className="self-start px-3 py-1 rounded-full text-xs font-medium"
-          >
-            Post Reply
-          </button>
-        </div>
-      )}
-
-      {comment.replies && comment.replies.map(reply => (
-        <CommentBlock
-          key={reply.id}
-          comment={reply}
-          parentId={comment.id}
-          user={user}
-          editingId={editingId}
-          editContent={editContent}
-          setEditContent={setEditContent}
-          replyingTo={replyingTo}
-          replyContent={replyContent}
-          setReplyContent={setReplyContent}
-          setEditingId={setEditingId}
-          setReplyingTo={setReplyingTo}
-          handleEdit={handleEdit}
-          handleDelete={handleDelete}
-          handleReply={handleReply}
-          setPendingDelete={setPendingDelete}
-        />
-      ))}
-    </div>
-  )
-}
 export default Postdetailpage
