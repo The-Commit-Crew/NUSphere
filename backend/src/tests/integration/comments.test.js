@@ -1,7 +1,18 @@
-import { describe, it, beforeAll, afterAll, expect } from "@jest/globals";
+import {
+  describe,
+  it,
+  beforeAll,
+  afterAll,
+  afterEach,
+  expect,
+  jest,
+} from "@jest/globals";
 import request from "supertest";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
+import notificationEmitter from "../../utils/notificationEmitter.js";
+
+jest.spyOn(notificationEmitter, "emit").mockImplementation(() => {});
 
 const timestamp = Date.now();
 
@@ -96,6 +107,10 @@ afterAll(async () => {
   await prisma.$disconnect();
 }, 30000);
 
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
 describe("POST /api/posts/:id/comments", () => {
   it("should return 401 without token", async () => {
     const res = await request(app)
@@ -115,15 +130,25 @@ describe("POST /api/posts/:id/comments", () => {
   it("should return 201 when creating a top-level comment", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPost1Id}/comments`)
-      .set("Authorization", `Bearer ${authToken1}`)
+      .set("Authorization", `Bearer ${authToken2}`)
       .send({ content: "First top-level comment" });
 
     expect(res.status).toBe(201);
     expect(res.body.content).toBe("First top-level comment");
-    expect(res.body.authorId).toBe(testUser1Id);
+    expect(res.body.authorId).toBe(testUser2Id);
     expect(res.body.parentId).toBeNull();
 
     topLevelCommentId = res.body.id;
+
+    expect(notificationEmitter.emit).toHaveBeenCalledWith(
+      "notification",
+      expect.objectContaining({
+        type: "REPLY",
+        message: "Someone commented on your post!",
+        postId: testPost1Id,
+        userId: testUser1Id,
+      }),
+    );
   });
 
   it("should return 400 when parentId belongs to a completely different post", async () => {
@@ -144,7 +169,7 @@ describe("POST /api/posts/:id/comments", () => {
   it("should return 201 when creating a nested reply", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPost1Id}/comments`)
-      .set("Authorization", `Bearer ${authToken2}`)
+      .set("Authorization", `Bearer ${authToken1}`)
       .send({
         content: "This is a reply to the top level comment.",
         parentId: topLevelCommentId,
@@ -154,6 +179,16 @@ describe("POST /api/posts/:id/comments", () => {
     expect(res.body.parentId).toBe(topLevelCommentId);
 
     replyCommentId = res.body.id;
+
+    expect(notificationEmitter.emit).toHaveBeenCalledWith(
+      "notification",
+      expect.objectContaining({
+        type: "REPLY",
+        message: "Someone replied to your comment!",
+        userId: testUser2Id,
+        postId: testPost1Id,
+      }),
+    );
   });
 });
 
@@ -236,7 +271,7 @@ describe("DELETE /api/comments/:id", () => {
   it("should cascade delete replies when a parent comment is deleted", async () => {
     const deleteRes = await request(app)
       .delete(`/api/comments/${topLevelCommentId}`)
-      .set("Authorization", `Bearer ${authToken1}`);
+      .set("Authorization", `Bearer ${authToken2}`);
     expect(deleteRes.status).toBe(200);
 
     const cascadeCheck = await prisma.comment.findUnique({

@@ -44,8 +44,7 @@ export async function resendOtp(data) {
   return result
 }
 
-// ---- Topics ----
-
+//Topics
 export async function getAllTopics() {
   const response = await fetch(`${BASE_URL}/topics`)
   const result = await response.json()
@@ -60,7 +59,14 @@ export async function getTopicById(topicId) {
   return result
 }
 
-// ---- Posts ----
+//Posts 
+
+export async function getAllPosts() {
+  const response = await fetch(`${BASE_URL}/posts`)
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to fetch posts')
+  return result
+}
 
 export async function getPostById(postId, token) {
   const headers = {}
@@ -88,7 +94,7 @@ export async function createPost(data, token) {
   if (!response.ok) throw new Error(result.message || 'Failed to create post')
   return result
 }
-// ---- Voting ----
+//Voting 
 export async function castVote(postId, voteType, token) {
     const response = await fetch(`${BASE_URL}/posts/${postId}/vote`, {
     method: 'POST',
@@ -102,7 +108,7 @@ export async function castVote(postId, voteType, token) {
   if (!response.ok) throw new Error(result.message || 'Failed to vote')
   return result
 }
-// ---- Comments ----
+//Comments
 
 export async function getPostComments(postId) {
   const response = await fetch(`${BASE_URL}/posts/${postId}/comments`)
