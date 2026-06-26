@@ -21,6 +21,7 @@ let voterToken;
 let testUserId;
 let testTopicId;
 let testPostId;
+let voterUserId;
 
 const testUser = {
   firstName: "Post",
@@ -70,6 +71,7 @@ beforeAll(async () => {
       isVerified: true,
     },
   });
+  voterUserId = voterUser.id;
 
   const voterLogin = await request(app)
     .post("/api/auth/login")
@@ -84,6 +86,7 @@ afterAll(async () => {
   await prisma.topic.deleteMany({ where: { id: testTopicId } });
   await prisma.otpToken.deleteMany({ where: { userId: testUserId } });
   await prisma.user.deleteMany({ where: { id: testUserId } });
+  await prisma.user.deleteMany({ where: { id: voterUserId } });
   await prisma.$disconnect();
 }, 30000);
 

@@ -232,6 +232,12 @@ describe("PUT /api/projects/:id", () => {
 
 describe("POST /api/projects/:id/apply", () => {
   beforeAll(async () => {
+    await prisma.projectApplication.deleteMany({
+      where: {
+        projectId: testProjectId,
+        userId: applicantId,
+      },
+    });
     await prisma.project.update({
       where: { id: testProjectId },
       data: { status: "OPEN" },
