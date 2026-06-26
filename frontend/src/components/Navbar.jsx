@@ -35,18 +35,29 @@ function Navbar() {
         {/* Right side — changes based on login state */}
         <div className="flex items-center gap-3">
           {user ? (
-            <>
-              <span style={{ color: '#1A1512' }} className="text-sm font-medium">
-                {user.username}
-              </span>
-              <button
-                onClick={handleLogout}
-                style={{ border: '1px solid #E8E0D8', color: '#9A8880' }}
-                className="px-4 py-2 rounded-full text-sm hover:opacity-70"
-              >
-                Logout
-              </button>
-            </>
+        <>
+          <Link
+            to={`/u/${user.username}`}
+            style={{ backgroundColor: '#F5F0EB', color: '#9A8880' }}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold hover:opacity-80"
+          >
+            {user.firstName?.[0]?.toUpperCase()}
+          </Link>
+          <Link
+          to={`/u/${user.username}`}
+          style={{ color: '#1A1512' }}
+          className="text-sm font-medium hover:opacity-70"
+        >
+          {user.username}
+        </Link>
+          <button
+            onClick={handleLogout}
+            style={{ border: '1px solid #E8E0D8', color: '#9A8880' }}
+            className="px-4 py-2 rounded-full text-sm hover:opacity-70"
+          >
+            Logout
+          </button>
+        </>
           ) : (
             <>
               <Link

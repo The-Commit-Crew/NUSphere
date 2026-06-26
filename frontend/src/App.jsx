@@ -11,7 +11,8 @@ import Createprojectpage from './pages/Createprojectpage'
 import Collaboratepage from './pages/Collaboratepage'
 import Editprojectpage from './pages/Editprojectpage'
 import Projectdetailpage from './pages/Projectdetailpage'
-
+import Profilepage from './pages/Profilepage'
+import Editprofilepage from './pages/Editprofilepage'
 function App() {
   return (
     <div style={{ backgroundColor: '#F5F0EB' }} className="min-h-screen">
@@ -28,7 +29,8 @@ function App() {
         <Route path="/collaborate/:id/edit" element={<Protectedroute><Editprojectpage /></Protectedroute>}/>
         <Route path="/collaborate/:id/edit" element={<Protectedroute><Editprojectpage /></Protectedroute>}/>
         <Route path="/collaborate/:id" element={<Projectdetailpage />} />
-
+        <Route path="/u/edit" element={<Protectedroute><Editprofilepage /></Protectedroute>}/>
+        <Route path="/u/:username" element={<Profilepage />} />
       </Routes>
     </div>
   )

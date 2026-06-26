@@ -239,3 +239,31 @@ export async function updateApplicationStatus(appId, data, token) {
   return result
 }
 
+//User Profile
+
+export async function getUserProfile(username, token) {
+  const headers = {}
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+  const response = await fetch(`${BASE_URL}/users/${username}`, {
+    headers,
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to fetch profile')
+  return result
+}
+
+export async function updateUserProfile(data, token) {
+  const response = await fetch(`${BASE_URL}/users/me`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to update profile')
+  return result
+}
