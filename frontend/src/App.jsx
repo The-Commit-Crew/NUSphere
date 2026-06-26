@@ -7,6 +7,10 @@ import Navbar from './components/Navbar'
 import Createpostpage from './pages/Createpostpage'
 import Protectedroute from './components/Protectedroute'
 import Postdetailpage from './pages/Postdetailpage' 
+import Createprojectpage from './pages/Createprojectpage'
+import Collaboratepage from './pages/Collaboratepage'
+import Editprojectpage from './pages/Editprojectpage'
+import Projectdetailpage from './pages/Projectdetailpage'
 
 function App() {
   return (
@@ -19,6 +23,12 @@ function App() {
         <Route path="/verify-otp" element={<Verifyotppage />} />
         <Route path="/create-post" element={<Protectedroute><Createpostpage /></Protectedroute>}/>
         <Route path="/posts/:id" element={<Postdetailpage/>}/>
+        <Route path="/collaborate" element={<Collaboratepage />} />
+        <Route path="/collaborate/create" element={<Protectedroute><Createprojectpage /></Protectedroute>}/>
+        <Route path="/collaborate/:id/edit" element={<Protectedroute><Editprojectpage /></Protectedroute>}/>
+        <Route path="/collaborate/:id/edit" element={<Protectedroute><Editprojectpage /></Protectedroute>}/>
+        <Route path="/collaborate/:id" element={<Projectdetailpage />} />
+
       </Routes>
     </div>
   )

@@ -156,3 +156,86 @@ export async function deleteComment(commentId, token) {
   if (!response.ok) throw new Error(result.message || 'Failed to delete comment')
   return result
 }
+//Projects
+
+export async function getAllProjects() {
+  const response = await fetch(`${BASE_URL}/projects`)
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to fetch projects')
+  return result
+}
+
+export async function getProjectById(projectId) {
+  const response = await fetch(`${BASE_URL}/projects/${projectId}`)
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to fetch project')
+  return result
+}
+
+export async function createProject(data, token) {
+  const response = await fetch(`${BASE_URL}/projects`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to create project')
+  return result
+}
+
+export async function updateProject(projectId, data, token) {
+  const response = await fetch(`${BASE_URL}/projects/${projectId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to update project')
+  return result
+}
+
+export async function applyToProject(projectId, data, token) {
+  const response = await fetch(`${BASE_URL}/projects/${projectId}/apply`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to apply to project')
+  return result
+}
+
+export async function getProjectApplications(projectId, token) {
+  const response = await fetch(`${BASE_URL}/projects/${projectId}/applications`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to fetch applications')
+  return result
+}
+
+export async function updateApplicationStatus(appId, data, token) {
+  const response = await fetch(`${BASE_URL}/projects/applications/${appId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to update application status')
+  return result
+}
+
