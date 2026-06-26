@@ -7,7 +7,7 @@ import {
   getProjectApplications,
   updateApplicationStatus,
 } from '../services/Authservice'
-import ApplicationRow from '../components/ApplicationRow'
+import ApplicationRow from "../components/Applicationrow";
 
 function statusStyle(status) {
   if (status === 'OPEN') {
