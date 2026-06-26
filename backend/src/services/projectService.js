@@ -175,6 +175,12 @@ export const applyToProjectService = async (
   if (project.authorId == applicantId) {
     throw new Error("You cannot apply to your own project");
   }
+  const existingApplication = await prisma.projectApplication.findUnique({
+    where: { projectId_userId: { projectId, userId: applicantId } },
+  });
+  if (existingApplication) {
+    throw new Error("You cannot apply to the same project multiple times");
+  }
   const projectApplication = await prisma.projectApplication.create({
     data: {
       projectId,
