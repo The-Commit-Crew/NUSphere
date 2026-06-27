@@ -151,19 +151,26 @@ function Postlist({ selectedTopicId }) {
             </p>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <span
-                style={{ backgroundColor: '#F5F0EB', color: '#9A8880', fontSize: '10px' }}
-                className="px-2 py-0.5 rounded-full font-medium"
-              >
-                {post.topic?.name}
-              </span>
-              <span style={{ color: '#9A8880', fontSize: '11px' }}>
-                💬
-              </span>
-              <span style={{ color: '#9A8880', fontSize: '11px', marginLeft: 'auto' }}>
-                u/{post.author?.username} · 🕐 {timeAgo(post.createdAt)}
-              </span>
-            </div>
+            <span
+              style={{ backgroundColor: '#F5F0EB', color: '#9A8880', fontSize: '10px' }}
+              className="px-2 py-0.5 rounded-full font-medium"
+            >
+              {post.topic?.name}
+            </span>
+            <span style={{ color: '#9A8880' }} className="flex items-center gap-1" >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+              </svg>
+            </span>
+            <span style={{ color: '#9A8880', fontSize: '11px', marginLeft: 'auto' }} className="flex items-center gap-1">
+              u/{post.author?.username} ·
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+              </svg>
+              {timeAgo(post.createdAt)}
+            </span>
+          </div>
           </div>
 
         </div>
