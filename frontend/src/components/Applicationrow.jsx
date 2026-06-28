@@ -1,9 +1,13 @@
+import { useNavigate } from 'react-router-dom'
+
 function ApplicationRow({ application, onUpdateStatus, updatingId }) {
+   const navigate = useNavigate()
   const isUpdating = updatingId === application.id
   const isDecided = application.status === 'ACCEPTED' || application.status === 'REJECTED'
 
   return (
     <div
+      onClick={() => navigate(`/u/${application.user?.username}`)}
       style={{ backgroundColor: '#F5F0EB', border: '1px solid #E8E0D8' }}
       className="rounded-lg p-4 flex flex-col gap-2"
     >
@@ -26,8 +30,11 @@ function ApplicationRow({ application, onUpdateStatus, updatingId }) {
           </span>
         ) : (
           <div className="flex gap-2">
-            <button
-              onClick={() => onUpdateStatus(application.id, 'ACCEPTED')}
+           <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onUpdateStatus(application.id, 'ACCEPTED')
+              }}
               disabled={isUpdating}
               style={{ backgroundColor: '#C4552A', color: '#FFFFFF' }}
               className="px-3 py-1 rounded-full text-xs font-medium hover:opacity-90 disabled:opacity-50"
@@ -35,7 +42,10 @@ function ApplicationRow({ application, onUpdateStatus, updatingId }) {
               {isUpdating ? '...' : 'Accept'}
             </button>
             <button
-              onClick={() => onUpdateStatus(application.id, 'REJECTED')}
+              onClick={(e) => {
+                e.stopPropagation()
+                onUpdateStatus(application.id, 'REJECTED')
+              }}
               disabled={isUpdating}
               style={{ border: '1px solid #E8E0D8', color: '#9A8880' }}
               className="px-3 py-1 rounded-full text-xs font-medium hover:opacity-70 disabled:opacity-50"
