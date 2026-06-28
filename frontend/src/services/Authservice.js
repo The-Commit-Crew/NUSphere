@@ -267,3 +267,28 @@ export async function updateUserProfile(data, token) {
   if (!response.ok) throw new Error(result.message || 'Failed to update profile')
   return result
 }
+
+//Notifications
+
+export async function getUserNotifications(token) {
+  const response = await fetch(`${BASE_URL}/notifications`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to fetch notifications')
+  return result
+}
+
+export async function markNotificationAsRead(notificationId, token) {
+  const response = await fetch(`${BASE_URL}/notifications/${notificationId}/read`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Failed to mark notification as read')
+  return result
+}
