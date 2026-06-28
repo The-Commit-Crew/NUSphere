@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog'
+import { renderWithMentions } from '../utils/mentionUtils'
 import {
   getPostById,
   castVote,
@@ -107,8 +108,8 @@ function CommentBlock({
           </div>
         ) : (
           <p style={{ color: '#1A1512' }} className="text-sm">
-            {comment.content}
-          </p>
+           {renderWithMentions(comment.content)}
+</p>
         )}
 
         {!parentId && !isEditing && (
