@@ -2,6 +2,7 @@ import { describe, it, expect } from "@jest/globals";
 import {
   createPostSchema,
   voteSchema,
+  getPostQuerySchema,
 } from "../../validators/postValidator.js";
 
 describe("createPostSchema", () => {
@@ -96,5 +97,41 @@ describe("voteSchema", () => {
     expect(error.details[0].message).toBe(
       "Vote type must be exactly 'UP' or 'DOWN'",
     );
+  });
+});
+
+describe("getPostQuerySchema", () => {
+  it("should apply defaults for empty query", () => {
+    const { error, value } = getPostQuerySchema.validate({});
+    expect(error).toBeUndefined();
+    expect(value.sort).toBe("new");
+    expect(value.page).toBe(1);
+    expect(value.limit).toBe(10);
+  });
+
+  it("should pass with full valid query", () => {
+    const { error } = getPostQuerySchema.validate({
+      q: "test search",
+      sort: "hot",
+      topicId: 1,
+      page: 2,
+      limit: 20,
+    });
+    expect(error).toBeUndefined();
+  });
+
+  it("should fail with invalid sort option", () => {
+    const { error } = getPostQuerySchema.validate({ sort: "random" });
+    expect(error).toBeDefined();
+  });
+
+  it("should fail with limit over 50", () => {
+    const { error } = getPostQuerySchema.validate({ limit: 100 });
+    expect(error).toBeDefined();
+  });
+
+  it("should fail with negative page", () => {
+    const { error } = getPostQuerySchema.validate({ page: -1 });
+    expect(error).toBeDefined();
   });
 });

@@ -1,5 +1,9 @@
 import prisma from "../config/prisma.js";
-import { createPostSchema, voteSchema } from "../validators/postValidator.js";
+import {
+  createPostSchema,
+  voteSchema,
+  getPostQuerySchema,
+} from "../validators/postValidator.js";
 import notificationEmitter from "../utils/notificationEmitter.js";
 import { extractMentions } from "../utils/mentionParser.js";
 
@@ -181,19 +185,101 @@ export const castVoteService = async (userId, postId, { voteType }) => {
   };
 };
 
-export const getAllPostsService = async () => {
-  const posts = await prisma.post.findMany({
-    include: {
-      author: {
-        select: {
-          username: true,
-          firstName: true,
-          lastName: true,
-        },
-      },
-      topic: { select: { name: true } },
-    },
-    orderBy: { createdAt: "desc" },
+export const getAggregatedPostsService = async ({
+  q,
+  sort,
+  topicId,
+  page,
+  limit,
+}) => {
+  const { error, value } = getPostQuerySchema.validate({
+    q,
+    sort,
+    topicId,
+    page,
+    limit,
   });
-  return posts;
+  if (error) {
+    throw new Error(error.details[0].message);
+  }
+  const skip = (value.page - 1) * value.limit;
+  const whereClause = {};
+  if (value.topicId) {
+    whereClause.topicId = value.topicId;
+  }
+  if (q && q.trim() !== "") {
+    const formattedQuery = value.q.trim().split(/\s+/).join(" | ");
+    whereClause.OR = [
+      { title: { search: formattedQuery } },
+      { content: { search: formattedQuery } },
+    ];
+  }
+  if (value.sort === "new" || value.sort === "top") {
+    return await prisma.post.findMany({
+      skip: skip,
+      take: value.limit,
+      where: whereClause,
+      orderBy:
+        value.sort === "new"
+          ? {
+              createdAt: "desc",
+            }
+          : {
+              upvoteCount: "desc",
+            },
+      include: {
+        author: {
+          select: {
+            username: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        topic: { select: { name: true } },
+      },
+    });
+  } else {
+    let sqlWhere = `1=1`;
+    if (value.topicId) {
+      sqlWhere += ` AND p."topicId" = ${value.topicId}`;
+    }
+    if (q && q.trim() !== "") {
+      const formattedQuery = value.q.trim().split(/\s+/).join(" | ");
+      const safeQuery = formattedQuery.replace(/'/g, "''");
+      sqlWhere += ` AND to_tsvector('english', p.title || ' ' || p.content) @@ to_tsquery('english', '${safeQuery}')`;
+    }
+    const rawPosts = await prisma.$queryRawUnsafe(`
+      SELECT p.*,
+             t.name as "topicName",
+             u.username as "authorUsername",
+             u."firstName" as "authorFirstName",
+             u."lastName" as "authorLastName",
+             (p."upvoteCount" - p."downvoteCount") / POWER(EXTRACT(EPOCH FROM (NOW() - p."createdAt"))/3600 + 2, 1.5) AS "hotScore"
+      FROM "Post" p
+      JOIN "Topic" t ON p."topicId" = t.id
+      JOIN "User" u ON p."authorId" = u.id
+      WHERE ${sqlWhere}
+      ORDER BY "hotScore" DESC
+      LIMIT ${value.limit} OFFSET ${skip}
+   `);
+    return rawPosts.map((post) => ({
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      upvoteCount: post.upvoteCount,
+      downvoteCount: post.downvoteCount,
+      topicId: post.topicId,
+      authorId: post.authorId,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      author: {
+        username: post.authorUsername,
+        firstName: post.authorFirstName,
+        lastName: post.authorLastName,
+      },
+      topic: {
+        name: post.topicName,
+      },
+    }));
+  }
 };

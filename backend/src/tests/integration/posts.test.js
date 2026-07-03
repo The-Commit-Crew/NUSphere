@@ -332,4 +332,47 @@ describe("GET /api/posts", () => {
     expect(newestPost.topic).toBeDefined();
     expect(newestPost.topic.name).toBeDefined();
   });
+  it("should apply pagination limits correctly", async () => {
+    const res = await request(app).get("/api/posts?limit=1");
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBe(1);
+  });
+
+  it("should return 200 when sorted by top", async () => {
+    const res = await request(app).get("/api/posts?sort=top");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    if (res.body.length > 1) {
+      expect(res.body[0].upvoteCount).toBeGreaterThanOrEqual(
+        res.body[1].upvoteCount,
+      );
+    }
+  });
+
+  it("should return 200 when sorted by hot", async () => {
+    const res = await request(app).get("/api/posts?sort=hot");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("should return 200 and filter by topicId", async () => {
+    const res = await request(app).get(`/api/posts?topicId=${testTopicId}`);
+    expect(res.status).toBe(200);
+    res.body.forEach((post) => {
+      expect(post.topicId).toBe(testTopicId);
+    });
+  });
+
+  it("should return 200 and filter by search query", async () => {
+    const res = await request(app).get("/api/posts?q=Integration");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("should return 400 for invalid query parameters", async () => {
+    const res = await request(app).get(
+      "/api/posts?sort=invalidSort&limit=1000",
+    );
+    expect(res.status).toBe(400);
+  });
 });

@@ -2,7 +2,7 @@ import {
   createPostService,
   getPostByIdService,
   castVoteService,
-  getAllPostsService,
+  getAggregatedPostsService,
 } from "../services/postService.js";
 
 export const createPost = async (req, res) => {
@@ -45,7 +45,7 @@ export const castVote = async (req, res) => {
 
 export const getAllPosts = async (req, res) => {
   try {
-    const result = await getAllPostsService();
+    const result = await getAggregatedPostsService(req.query);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({
