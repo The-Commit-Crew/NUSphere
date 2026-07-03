@@ -7,6 +7,7 @@ import {
   getPostById,
   castVote,
   getAllPosts,
+  deletePost,
 } from "../controllers/postController.js";
 import {
   createComment,
@@ -131,6 +132,55 @@ router.get("/", getAllPosts);
  *               $ref: '#/components/schemas/Error'
  */
 router.get("/:id", optionalAuth, getPostById);
+
+/**
+ * @swagger
+ * /api/posts/{id}:
+ *   delete:
+ *     summary: Delete a post
+ *     description: Deletes a specific post if the authenticated user is the author. Requires a valid JWT token.
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The numeric ID of the post to delete
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Post deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Post deleted successfully"
+ *       400:
+ *         description: Post not found or user is not authorized to delete it
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: No token provided
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Token invalid or expired
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.delete("/:id", authenticateToken, deletePost);
 
 /**
  * @swagger
