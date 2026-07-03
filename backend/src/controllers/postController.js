@@ -3,6 +3,7 @@ import {
   getPostByIdService,
   castVoteService,
   getAggregatedPostsService,
+  deletePostService,
 } from "../services/postService.js";
 
 export const createPost = async (req, res) => {
@@ -46,6 +47,20 @@ export const castVote = async (req, res) => {
 export const getAllPosts = async (req, res) => {
   try {
     const result = await getAggregatedPostsService(req.query);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const deletePost = async (req, res) => {
+  try {
+    const result = await deletePostService(
+      parseInt(req.params.id),
+      parseInt(req.user.userId),
+    );
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({

@@ -283,3 +283,25 @@ export const getAggregatedPostsService = async ({
     }));
   }
 };
+
+export const deletePostService = async (postId, userId) => {
+  const post = await prisma.post.findUnique({
+    where: {
+      id: postId,
+    },
+  });
+  if (!post) {
+    throw new Error("Post not found");
+  }
+  if (post.authorId !== userId) {
+    throw new Error("Unauthorized to delete post");
+  }
+  await prisma.post.delete({
+    where: {
+      id: postId,
+    },
+  });
+  return {
+    message: "Post deleted successfully",
+  };
+};

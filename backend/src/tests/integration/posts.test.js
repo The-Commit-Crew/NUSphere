@@ -376,3 +376,49 @@ describe("GET /api/posts", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe("DELETE /api/posts/:id", () => {
+  let postToDeleteId;
+
+  beforeAll(async () => {
+    const res = await request(app)
+      .post("/api/posts")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        title: "Post to delete",
+        content: "This post will be deleted during tests.",
+        topicId: testTopicId,
+      });
+    postToDeleteId = res.body.id;
+  });
+
+  it("should return 401 without token", async () => {
+    const res = await request(app).delete(`/api/posts/${postToDeleteId}`);
+    expect(res.status).toBe(401);
+  });
+
+  it("should return 400 for non-existent post", async () => {
+    const res = await request(app)
+      .delete("/api/posts/99999")
+      .set("Authorization", `Bearer ${authToken}`);
+    expect(res.status).toBe(400);
+  });
+
+  it("should return 400 if user is not the author", async () => {
+    const res = await request(app)
+      .delete(`/api/posts/${postToDeleteId}`)
+      .set("Authorization", `Bearer ${voterToken}`);
+    expect(res.status).toBe(400);
+  });
+
+  it("should return 200 and delete the post", async () => {
+    const res = await request(app)
+      .delete(`/api/posts/${postToDeleteId}`)
+      .set("Authorization", `Bearer ${authToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Post deleted successfully");
+
+    const getRes = await request(app).get(`/api/posts/${postToDeleteId}`);
+    expect(getRes.status).toBe(400);
+  });
+});
