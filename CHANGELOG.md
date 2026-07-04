@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Advanced FTS Search, Gravity Sorting, and Pagination
 - DELETE post endpoint
 
+### Fixed
+
+- Comment count while getting posts
+
 ## [2.0.0] - 2026-06-29
 
 ### Added

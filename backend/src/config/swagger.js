@@ -330,6 +330,13 @@ const options = {
                 name: { type: "string", example: "Modules" },
               },
             },
+            _count: {
+              type: "object",
+              description: "Comment count",
+              properties: {
+                comments: { type: "integer" },
+              },
+            },
           },
         },
 

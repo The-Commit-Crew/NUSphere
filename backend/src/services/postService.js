@@ -39,6 +39,7 @@ export const createPostService = async (
       topic: {
         select: { name: true },
       },
+      _count: { select: { comments: true } },
     },
   });
   const mentionedUsernames = extractMentions(content);
@@ -81,6 +82,7 @@ export const getPostByIdService = async (postId, userId = null) => {
       topic: {
         select: { name: true },
       },
+      _count: { select: { comments: true } },
     },
   });
   if (!post) {
@@ -236,6 +238,7 @@ export const getAggregatedPostsService = async ({
           },
         },
         topic: { select: { name: true } },
+        _count: { select: { comments: true } },
       },
     });
   } else {
@@ -254,6 +257,7 @@ export const getAggregatedPostsService = async ({
              u.username as "authorUsername",
              u."firstName" as "authorFirstName",
              u."lastName" as "authorLastName",
+             (SELECT COUNT(*) FROM "Comment" WHERE "postId" = p.id) AS "commentCount",
              (p."upvoteCount" - p."downvoteCount") / POWER(EXTRACT(EPOCH FROM (NOW() - p."createdAt"))/3600 + 2, 1.5) AS "hotScore"
       FROM "Post" p
       JOIN "Topic" t ON p."topicId" = t.id
@@ -280,6 +284,7 @@ export const getAggregatedPostsService = async ({
       topic: {
         name: post.topicName,
       },
+      _count: { comments: parseInt(post.commentCount) },
     }));
   }
 };

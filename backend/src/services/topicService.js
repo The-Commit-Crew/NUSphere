@@ -30,6 +30,11 @@ export const getTopicByIdService = async (topicId) => {
               lastName: true,
             },
           },
+          _count: {
+            select: {
+              comments: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
       },

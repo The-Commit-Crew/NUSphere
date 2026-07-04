@@ -92,7 +92,7 @@ router.get("/", getAllPosts);
  *     summary: Get a post by ID
  *     description: >
  *       Returns a single post along with the author's username, firstName,
- *       and lastName, and the topic name. If a valid JWT token is provided,
+ *       and lastName, the topic name and comment content. If a valid JWT token is provided,
  *       also returns the authenticated user's current vote status on the post.
  *     tags: [Posts]
  *     security:
