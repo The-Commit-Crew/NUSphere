@@ -89,7 +89,7 @@ export const getPostByIdService = async (postId, userId = null) => {
     throw new Error("Post not found");
   }
   let userVoteStatus = null;
-
+  let bookmarkStatus = null;
   if (userId) {
     const vote = await prisma.vote.findUnique({
       where: { userId_postId: { userId, postId: parsedPostId } },
@@ -97,8 +97,16 @@ export const getPostByIdService = async (postId, userId = null) => {
     if (vote) {
       userVoteStatus = vote.voteType;
     }
+    const bookmark = await prisma.bookmark.findUnique({
+      where: { userId_postId: { userId, postId: parsedPostId } },
+    });
+    if (bookmark) {
+      bookmarkStatus = true;
+    } else {
+      bookmarkStatus = false;
+    }
   }
-  return { ...post, userVoteStatus };
+  return { ...post, userVoteStatus, bookmarkStatus };
 };
 
 export const castVoteService = async (userId, postId, { voteType }) => {

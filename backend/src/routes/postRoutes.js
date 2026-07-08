@@ -124,6 +124,14 @@ router.get("/", getAllPosts);
  *                         The current user's vote on this post.
  *                         null if unauthenticated or not yet voted.
  *                       example: "UP"
+ *                     bookmarkStatus:
+ *                       type: boolean
+ *                       nullable: true
+ *                       description: >
+ *                         Whether the current user has bookmarked this post.
+ *                         null if unauthenticated, true/false if logged in.
+ *                       example: true
+ *
  *       400:
  *         description: Post not found
  *         content:
