@@ -11,6 +11,7 @@ import projectRoutes from "./routes/projectRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import bookmarkRoutes from "./routes/bookmarkRoutes.js";
 
 import "./services/notificationService.js";
 
@@ -48,6 +49,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/bookmarks", bookmarkRoutes);
 
 app.get("/", (req, res) => {
   res.json({

@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 - Advanced FTS Search, Gravity Sorting, and Pagination
 - DELETE post endpoint
+- Bookmarks/Save
+- Anonymous posting/commenting
 
 ### Fixed
 

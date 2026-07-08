@@ -190,6 +190,16 @@ describe("POST /api/posts/:id/comments", () => {
       }),
     );
   });
+
+  it("should return 201 when creating an anonymous comment", async () => {
+    const res = await request(app)
+      .post(`/api/posts/${testPost1Id}/comments`)
+      .set("Authorization", `Bearer ${authToken1}`)
+      .send({ content: "Secret comment", isAnonymous: true });
+
+    expect(res.status).toBe(201);
+    expect(res.body.isAnonymous).toBe(true);
+  });
 });
 
 describe("GET /api/posts/:id/comments", () => {
@@ -210,6 +220,15 @@ describe("GET /api/posts/:id/comments", () => {
     const reply = rootComment.replies.find((r) => r.id === replyCommentId);
     expect(reply).toBeDefined();
     expect(reply.content).toBe("This is a reply to the top level comment.");
+  });
+
+  it("should mask author identity for anonymous comments", async () => {
+    const res = await request(app).get(`/api/posts/${testPost1Id}/comments`);
+    const anonComment = res.body.find((c) => c.content === "Secret comment");
+
+    expect(anonComment).toBeDefined();
+    expect(anonComment.author.username).toBe("Anonymous");
+    expect(anonComment.author.profilePic).toBeNull();
   });
 });
 

@@ -9,9 +9,13 @@ import { extractMentions } from "../utils/mentionParser.js";
 export const createCommentService = async (
   postId,
   authorId,
-  { content, parentId },
+  { content, parentId, isAnonymous },
 ) => {
-  const { error, value } = createCommentSchema.validate({ content, parentId });
+  const { error, value } = createCommentSchema.validate({
+    content,
+    parentId,
+    isAnonymous,
+  });
   if (error) {
     throw new Error(error.details[0].message);
   }
@@ -41,6 +45,7 @@ export const createCommentService = async (
       postId,
       authorId,
       parentId: parentId ?? null,
+      isAnonymous: value.isAnonymous,
     },
   });
 
@@ -98,7 +103,11 @@ export const getPostCommentsService = async (postId) => {
       },
     },
   });
-
+  comments.forEach((comment) => {
+    if (comment.isAnonymous) {
+      comment.author = { username: "Anonymous", profilePic: null };
+    }
+  });
   const commentMap = {};
   const rootComments = [];
   comments.forEach((comment) => {
@@ -122,9 +131,12 @@ export const getPostCommentsService = async (postId) => {
 export const updateCommentService = async (
   commentId,
   authorId,
-  { content },
+  { content, isAnonymous },
 ) => {
-  const { error, value } = updateCommentSchema.validate({ content });
+  const { error, value } = updateCommentSchema.validate({
+    content,
+    isAnonymous,
+  });
   if (error) {
     throw new Error(error.details[0].message);
   }
@@ -148,6 +160,7 @@ export const updateCommentService = async (
     },
     data: {
       content: value.content,
+      isAnonymous: value.isAnonymous,
     },
   });
   return updatedComment;

@@ -21,6 +21,7 @@ let voterToken;
 let testUserId;
 let testTopicId;
 let testPostId;
+let anonPostId;
 let voterUserId;
 
 const testUser = {
@@ -171,6 +172,23 @@ describe("POST /api/posts", () => {
 
     testPostId = res.body.id;
   });
+
+  it("should return 201 when creating an anonymous post", async () => {
+    const res = await request(app)
+      .post("/api/posts")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        title: "Anonymous Post",
+        content: "This is a secret post.",
+        topicId: testTopicId,
+        isAnonymous: true,
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.isAnonymous).toBe(true);
+
+    anonPostId = res.body.id;
+  });
 });
 
 describe("GET /api/posts/:id", () => {
@@ -184,6 +202,15 @@ describe("GET /api/posts/:id", () => {
     expect(res.body.topic).toBeDefined();
     expect(res.body.topic.name).toBeDefined();
     expect(res.body.userVoteStatus).toBeNull();
+  });
+
+  it("should mask the author identity when fetching an anonymous post", async () => {
+    const res = await request(app).get(`/api/posts/${anonPostId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.author.username).toBe("Anonymous");
+    expect(res.body.author.firstName).toBe("Anonymous");
+    expect(res.body.author.lastName).toBe("");
   });
 
   it("should return correct userVoteStatus for authenticated user", async () => {
@@ -332,6 +359,17 @@ describe("GET /api/posts", () => {
     expect(newestPost.topic).toBeDefined();
     expect(newestPost.topic.name).toBeDefined();
   });
+
+  it("should mask the author identity for anonymous posts in the global feed", async () => {
+    const res = await request(app).get("/api/posts");
+
+    const fetchedAnonPost = res.body.find((p) => p.id === anonPostId);
+    expect(fetchedAnonPost).toBeDefined();
+    expect(fetchedAnonPost.author.username).toBe("Anonymous");
+    expect(fetchedAnonPost.author.firstName).toBe("Anonymous");
+    expect(fetchedAnonPost.author.lastName).toBe("");
+  });
+
   it("should apply pagination limits correctly", async () => {
     const res = await request(app).get("/api/posts?limit=1");
     expect(res.status).toBe(200);

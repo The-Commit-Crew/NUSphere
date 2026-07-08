@@ -22,6 +22,23 @@ describe("createCommentSchema", () => {
     expect(error).toBeUndefined();
   });
 
+  it("should pass when isAnonymous is provided as a boolean", () => {
+    const { error, value } = createCommentSchema.validate({
+      ...validComment,
+      isAnonymous: true,
+    });
+    expect(error).toBeUndefined();
+    expect(value.isAnonymous).toBe(true);
+  });
+
+  it("should fail when isAnonymous is not a boolean", () => {
+    const { error } = createCommentSchema.validate({
+      ...validComment,
+      isAnonymous: "maybe",
+    });
+    expect(error).toBeDefined();
+  });
+
   it("should fail when content is missing", () => {
     const { error } = createCommentSchema.validate({});
     expect(error).toBeDefined();
@@ -55,6 +72,15 @@ describe("updateCommentSchema", () => {
       content: "Updated comment content here.",
     });
     expect(error).toBeUndefined();
+  });
+
+  it("should pass when isAnonymous is provided as a boolean", () => {
+    const { error, value } = updateCommentSchema.validate({
+      content: "Updated content.",
+      isAnonymous: true,
+    });
+    expect(error).toBeUndefined();
+    expect(value.isAnonymous).toBe(true);
   });
 
   it("should fail when content is missing", () => {

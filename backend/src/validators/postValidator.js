@@ -18,6 +18,9 @@ export const createPostSchema = Joi.object({
     "number.positive": "Invalid topic selected",
     "any.required": "Please select a topic for your post",
   }),
+  isAnonymous: Joi.boolean().optional().default(false).messages({
+    "boolean.base": "Anonymity status should be a Boolean",
+  }),
 });
 
 export const voteSchema = Joi.object({
