@@ -12,6 +12,10 @@ export const createCommentSchema = Joi.object({
     "number.integer": "Parent ID must be an integer",
     "number.positive": "Parent ID must be postive",
   }),
+
+  isAnonymous: Joi.boolean().optional().default(false).messages({
+    "boolean.base": "Anonymity status should be a Boolean",
+  }),
 });
 
 export const updateCommentSchema = Joi.object({
@@ -19,5 +23,8 @@ export const updateCommentSchema = Joi.object({
     "string.empty": "Comment content cannot be empty",
     "string.max": "Comment content cannot exceed 1000 characters",
     "any.required": "Comment content is required",
+  }),
+  isAnonymous: Joi.boolean().optional().default(false).messages({
+    "boolean.base": "Anonymity status should be a Boolean",
   }),
 });

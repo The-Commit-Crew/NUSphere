@@ -296,6 +296,7 @@ const options = {
             topicId: { type: "integer", example: 1 },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
+            isAnonymous: { type: "boolean", example: false },
           },
         },
 
@@ -318,6 +319,7 @@ const options = {
             topicId: { type: "integer", example: 1 },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
+            isAnonymous: { type: "boolean", example: false },
             author: {
               type: "object",
               description: "Partial author details",
@@ -354,6 +356,7 @@ const options = {
             parentId: { type: "integer", nullable: true, example: null },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
+            isAnonymous: { type: "boolean", example: false },
           },
         },
 
@@ -362,6 +365,7 @@ const options = {
           properties: {
             id: { type: "integer", example: 1 },
             content: { type: "string", example: "This is a great point!" },
+            isAnonymous: { type: "boolean", example: false },
             author: {
               type: "object",
               properties: {
@@ -443,6 +447,7 @@ const options = {
               example: "I would strongly recommend taking CS1101S first...",
             },
             topicId: { type: "integer", example: 1 },
+            isAnonymous: { type: "boolean", example: false },
           },
         },
 

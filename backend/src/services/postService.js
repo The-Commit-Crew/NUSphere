@@ -9,9 +9,14 @@ import { extractMentions } from "../utils/mentionParser.js";
 
 export const createPostService = async (
   userId,
-  { title, content, topicId },
+  { title, content, topicId, isAnonymous },
 ) => {
-  const { error } = createPostSchema.validate({ title, content, topicId });
+  const { error, value } = createPostSchema.validate({
+    title,
+    content,
+    topicId,
+    isAnonymous,
+  });
   if (error) {
     throw new Error(error.details[0].message);
   }
@@ -31,6 +36,7 @@ export const createPostService = async (
       content,
       authorId: userId,
       topicId,
+      isAnonymous: value.isAnonymous,
     },
     include: {
       author: {
@@ -105,6 +111,13 @@ export const getPostByIdService = async (postId, userId = null) => {
     } else {
       bookmarkStatus = false;
     }
+  }
+  if (post.isAnonymous) {
+    post.author = {
+      username: "Anonymous",
+      firstName: "Anonymous",
+      lastName: "",
+    };
   }
   return { ...post, userVoteStatus, bookmarkStatus };
 };
@@ -225,7 +238,7 @@ export const getAggregatedPostsService = async ({
     ];
   }
   if (value.sort === "new" || value.sort === "top") {
-    return await prisma.post.findMany({
+    const posts = await prisma.post.findMany({
       skip: skip,
       take: value.limit,
       where: whereClause,
@@ -248,6 +261,16 @@ export const getAggregatedPostsService = async ({
         topic: { select: { name: true } },
         _count: { select: { comments: true } },
       },
+    });
+    return posts.map((post) => {
+      if (post.isAnonymous) {
+        post.author = {
+          username: "Anonymous",
+          firstName: "Anonymous",
+          lastName: "",
+        };
+      }
+      return post;
     });
   } else {
     let sqlWhere = `1=1`;
@@ -284,11 +307,13 @@ export const getAggregatedPostsService = async ({
       authorId: post.authorId,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
-      author: {
-        username: post.authorUsername,
-        firstName: post.authorFirstName,
-        lastName: post.authorLastName,
-      },
+      author: post.isAnonymous
+        ? { username: "Anonymous", firstName: "Anonymous", lastName: "" }
+        : {
+            username: post.authorUsername,
+            firstName: post.authorFirstName,
+            lastName: post.authorLastName,
+          },
       topic: {
         name: post.topicName,
       },

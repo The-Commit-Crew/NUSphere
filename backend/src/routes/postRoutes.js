@@ -328,6 +328,10 @@ router.get("/:id/comments", getPostComments);
  *                 nullable: true
  *                 description: The ID of the comment being replied to. Omit or set to null for top-level comments.
  *                 example: null
+ *               isAnonymous:
+ *                 type: boolean
+ *                 nullable: true
+ *                 example: false
  *     responses:
  *       201:
  *         description: Comment created successfully

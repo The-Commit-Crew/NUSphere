@@ -17,6 +17,23 @@ describe("createPostSchema", () => {
     expect(error).toBeUndefined();
   });
 
+  it("should pass when isAnonymous is provided as a boolean", () => {
+    const { error, value } = createPostSchema.validate({
+      ...validPost,
+      isAnonymous: true,
+    });
+    expect(error).toBeUndefined();
+    expect(value.isAnonymous).toBe(true);
+  });
+
+  it("should fail when isAnonymous is not a boolean", () => {
+    const { error } = createPostSchema.validate({
+      ...validPost,
+      isAnonymous: "yes",
+    });
+    expect(error).toBeDefined();
+  });
+
   it("should fail when title is under 3 characters", () => {
     const { error } = createPostSchema.validate({
       ...validPost,
