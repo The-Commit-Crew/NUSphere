@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 ### Fixed
 
 - Comment count while getting posts
-- Implement JWT refresh tokens
+- JWT refresh tokens
+- Account Recovery (forgot password feature)
 
 ## [2.0.0] - 2026-06-29
 

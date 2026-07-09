@@ -20,8 +20,8 @@ const app = express();
 
 export const allowedOrigins = [
   "http://localhost:5173",
-  "https://nusphere-web.vercel.app",
-];
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
 app.use(
   cors({

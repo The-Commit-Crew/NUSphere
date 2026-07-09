@@ -6,6 +6,8 @@ import {
   refreshAccessTokenService,
   logoutService,
   logoutOfAllDevicesService,
+  requestPasswordResetService,
+  resetPasswordService,
 } from "../services/authService.js";
 
 export const registerUser = async (req, res) => {
@@ -127,6 +129,28 @@ export const logoutOfAllDevices = async (req, res) => {
     const result = await logoutOfAllDevicesService(parseInt(req.user.userId));
     res.clearCookie("accessToken");
     res.clearCookie("refreshToken");
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const requestPasswordReset = async (req, res) => {
+  try {
+    const result = await requestPasswordResetService(req.body);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const result = await resetPasswordService(req.params.token, req.body);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({

@@ -435,6 +435,35 @@ const options = {
           },
         },
 
+        ForgotPasswordRequest: {
+          type: "object",
+          required: [],
+          properties: {
+            email: {
+              type: "string",
+              example: "e1234567@u.nus.edu",
+              description: "Provide either email or username",
+            },
+            username: {
+              type: "string",
+              example: "johndoe",
+              description: "Provide either email or username",
+            },
+          },
+        },
+
+        ResetPasswordRequest: {
+          type: "object",
+          required: ["newPassword"],
+          properties: {
+            newPassword: {
+              type: "string",
+              example: "Password123",
+              description: "Must meet password complexity requirements",
+            },
+          },
+        },
+
         CreatePostRequest: {
           type: "object",
           required: ["title", "content", "topicId"],

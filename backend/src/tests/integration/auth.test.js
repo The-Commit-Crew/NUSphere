@@ -5,10 +5,17 @@ import {
   afterAll,
   beforeEach,
   expect,
+  jest,
 } from "@jest/globals";
 import request from "supertest";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
+import crypto from "crypto";
+
+jest.mock("../../utils/sendEmail.js", () => ({
+  sendOtpEmail: jest.fn(),
+  sendPasswordResetEmail: jest.fn(),
+}));
 
 const timestamp = Date.now();
 const testUser = {
@@ -24,6 +31,9 @@ let skipGlobalReset = false;
 
 beforeAll(async () => {
   await prisma.otpToken.deleteMany({
+    where: { user: { email: testUser.email } },
+  });
+  await prisma.passwordResetToken.deleteMany({
     where: { user: { email: testUser.email } },
   });
   await prisma.user.deleteMany({
@@ -54,6 +64,7 @@ beforeEach(async () => {
   if (!user) return;
 
   await prisma.otpToken.deleteMany({ where: { userId: testUserId } });
+  await prisma.passwordResetToken.deleteMany({ where: { userId: testUserId } });
   await prisma.user.update({
     where: { id: testUserId },
     data: { isVerified: false },
@@ -63,6 +74,7 @@ beforeEach(async () => {
 afterAll(async () => {
   if (testUserId) {
     await prisma.otpToken.deleteMany({ where: { userId: testUserId } });
+    await prisma.passwordResetToken.deleteMany({ where: { userId: testUserId } });
     await prisma.refreshToken.deleteMany({ where: { userId: testUserId } });
     await prisma.user.deleteMany({ where: { id: testUserId } });
   }
@@ -415,6 +427,105 @@ describe("POST /api/auth/resend-otp", () => {
   });
 });
 
+describe("POST /api/auth/forgot-password", () => {
+  it("should fail when neither email nor username is provided", async () => {
+    const res = await request(app).post("/api/auth/forgot-password").send({});
+    expect(res.status).toBe(400);
+  });
+
+  it("should fail with a non-NUS email", async () => {
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: "testuser@gmail.com" });
+    expect(res.status).toBe(400);
+  });
+
+  it("should return success for a valid existing email", async () => {
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: testUser.email });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe(
+      "If an account exists, a reset link has been sent.",
+    );
+  });
+
+  it("should fail for a non-existent username", async () => {
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ username: "nonexistentuser" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Invalid Credentials");
+  });
+});
+
+describe("PATCH /api/auth/reset-password/:token", () => {
+  it("should fail with a password under 8 characters", async () => {
+    const res = await request(app)
+      .patch("/api/auth/reset-password/some-token")
+      .send({ newPassword: "Pass1" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("should fail with a password containing no numbers", async () => {
+    const res = await request(app)
+      .patch("/api/auth/reset-password/some-token")
+      .send({ newPassword: "PasswordOnly" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("should fail with an invalid or expired reset token", async () => {
+    const res = await request(app)
+      .patch("/api/auth/reset-password/invalid-token")
+      .send({ newPassword: "NewPassword1" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Password reset request denied");
+  });
+
+  it("should reset the password successfully with a valid token", async () => {
+    const rawToken = "valid-reset-token-123";
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: testUserId,
+        token: hashedToken,
+        expiresAt,
+      },
+    });
+
+    const res = await request(app)
+      .patch(`/api/auth/reset-password/${rawToken}`)
+      .send({ newPassword: "NewPassword1" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Password updated successfully");
+
+    const updatedUser = await prisma.user.findUnique({ where: { id: testUserId } });
+    const bcrypt = await import("bcrypt");
+    const isPasswordUpdated = await bcrypt.default.compare(
+      "NewPassword1",
+      updatedUser.password,
+    );
+
+    expect(isPasswordUpdated).toBe(true);
+
+    const remainingTokens = await prisma.refreshToken.findMany({
+      where: { userId: testUserId },
+    });
+    expect(remainingTokens).toHaveLength(0);
+  });
+});
+
 describe("Token Refresh & Logout Flow", () => {
   let validCookies = [];
 
@@ -428,10 +539,17 @@ describe("Token Refresh & Logout Flow", () => {
 
   beforeEach(async () => {
     await prisma.refreshToken.deleteMany({ where: { userId: testUserId } });
+    await prisma.passwordResetToken.deleteMany({ where: { userId: testUserId } });
+
+    const bcrypt = await import("bcrypt");
+    const hashedPassword = await bcrypt.default.hash(testUser.password, 10);
 
     await prisma.user.update({
       where: { id: testUserId },
-      data: { isVerified: true },
+      data: {
+        isVerified: true,
+        password: hashedPassword,
+      },
     });
 
     const res = await request(app).post("/api/auth/login").send({

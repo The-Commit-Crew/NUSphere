@@ -6,6 +6,8 @@ import {
   refreshAccessToken,
   logout,
   logoutOfAllDevices,
+  requestPasswordReset,
+  resetPassword,
 } from "../controllers/authController.js";
 import { Router } from "express";
 import { authenticateToken } from "../middleware/authMiddleware.js";
@@ -263,5 +265,77 @@ router.post("/logout", logout);
  *                   example: Invalid or expired token
  */
 router.post("/logout-all", authenticateToken, logoutOfAllDevices);
+
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Request a password reset link
+ *     description: Generates a secure, expiring token and sends a magic link to the user's email.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ForgotPasswordRequest'
+ *     responses:
+ *       200:
+ *         description: Reset link sent if account exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: If an account exists, a reset link has been sent.
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post("/forgot-password", requestPasswordReset);
+
+/**
+ * @swagger
+ * /api/auth/reset-password/{token}:
+ *   patch:
+ *     summary: Reset account password
+ *     description: Validates the token and updates the user's password. Invalidates all active refresh tokens.
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ResetPasswordRequest'
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Password updated successfully
+ *       400:
+ *         description: Token expired, invalid, or validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.patch("/reset-password/:token", resetPassword);
 
 export default router;
