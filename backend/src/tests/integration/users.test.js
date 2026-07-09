@@ -5,11 +5,11 @@ import prisma from "../../config/prisma.js";
 
 const timestamp = Date.now();
 
-let ownerToken;
+let ownerCookies = [];
 let ownerId;
 let ownerUsername = `owner${timestamp}`;
 
-let guestToken;
+let guestCookies = [];
 let guestId;
 
 beforeAll(async () => {
@@ -31,7 +31,7 @@ beforeAll(async () => {
   const ownerLogin = await request(app)
     .post("/api/auth/login")
     .send({ email: owner.email, password: "Password1" });
-  ownerToken = ownerLogin.body.token;
+  ownerCookies = ownerLogin.headers["set-cookie"] || [];
 
   const guest = await prisma.user.create({
     data: {
@@ -48,7 +48,7 @@ beforeAll(async () => {
   const guestLogin = await request(app)
     .post("/api/auth/login")
     .send({ email: guest.email, password: "Password1" });
-  guestToken = guestLogin.body.token;
+  guestCookies = guestLogin.headers["set-cookie"] || [];
 }, 30000);
 
 afterAll(async () => {
@@ -57,6 +57,9 @@ afterAll(async () => {
   });
   await prisma.project.deleteMany({
     where: { authorId: { in: [ownerId, guestId] } },
+  });
+  await prisma.refreshToken.deleteMany({
+    where: { userId: { in: [ownerId, guestId] } },
   });
   await prisma.otpToken.deleteMany({
     where: { userId: { in: [ownerId, guestId] } },
@@ -79,7 +82,7 @@ describe("PUT /api/users/me", () => {
   it("should return 400 with invalid URL fields", async () => {
     const res = await request(app)
       .put("/api/users/me")
-      .set("Authorization", `Bearer ${ownerToken}`)
+      .set("Cookie", ownerCookies)
       .send({
         githubLink: "invalid-url",
       });
@@ -90,7 +93,7 @@ describe("PUT /api/users/me", () => {
   it("should return 200 and normalize skills properly on valid update", async () => {
     const res = await request(app)
       .put("/api/users/me")
-      .set("Authorization", `Bearer ${ownerToken}`)
+      .set("Cookie", ownerCookies)
       .send({
         bio: "Updated bio for testing.",
         githubLink: "https://github.com/test",
@@ -102,9 +105,9 @@ describe("PUT /api/users/me", () => {
     expect(res.body.githubLink).toBe("https://github.com/test");
 
     const skillNames = res.body.skills.map((s) => s.name);
-    expect(skillNames).toContain("React");
-    expect(skillNames).toContain("Node.js");
-    expect(skillNames).toContain("Prisma");
+    expect(skillNames).toContain("REACT");
+    expect(skillNames).toContain("NODE.JS");
+    expect(skillNames).toContain("PRISMA");
   });
 });
 
@@ -117,7 +120,7 @@ describe("GET /api/users/me/dashboard", () => {
   it("should return 200 with complete private data for authenticated user", async () => {
     const res = await request(app)
       .get("/api/users/me/dashboard")
-      .set("Authorization", `Bearer ${ownerToken}`);
+      .set("Cookie", ownerCookies);
 
     expect(res.status).toBe(200);
     expect(res.body.id).toBe(ownerId);
@@ -146,7 +149,7 @@ describe("GET /api/users/:username", () => {
   it("should return 200 PUBLIC data when logged in as a DIFFERENT user", async () => {
     const res = await request(app)
       .get(`/api/users/${ownerUsername}`)
-      .set("Authorization", `Bearer ${guestToken}`);
+      .set("Cookie", guestCookies);
 
     expect(res.status).toBe(200);
     expect(res.body.username).toBe(ownerUsername);
@@ -157,7 +160,7 @@ describe("GET /api/users/:username", () => {
   it("should return 200 MERGED data when logged in as the profile OWNER", async () => {
     const res = await request(app)
       .get(`/api/users/${ownerUsername}`)
-      .set("Authorization", `Bearer ${ownerToken}`);
+      .set("Cookie", ownerCookies);
 
     expect(res.status).toBe(200);
     expect(res.body.username).toBe(ownerUsername);

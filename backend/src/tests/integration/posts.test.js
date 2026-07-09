@@ -16,8 +16,8 @@ jest.spyOn(notificationEmitter, "emit").mockImplementation(() => {});
 
 const timestamp = Date.now();
 
-let authToken;
-let voterToken;
+let validCookies = [];
+let voterCookies = [];
 let testUserId;
 let testTopicId;
 let testPostId;
@@ -52,7 +52,7 @@ beforeAll(async () => {
     .post("/api/auth/login")
     .send({ email: testUser.email, password: testUser.password });
 
-  authToken = loginRes.body.token;
+  validCookies = loginRes.headers["set-cookie"] || [];
 
   const topic = await prisma.topic.create({
     data: {
@@ -78,16 +78,22 @@ beforeAll(async () => {
     .post("/api/auth/login")
     .send({ email: voterUser.email, password: testUser.password });
 
-  voterToken = voterLogin.body.token;
+  voterCookies = voterLogin.headers["set-cookie"] || [];
 }, 30000);
 
 afterAll(async () => {
   await prisma.vote.deleteMany({ where: { userId: testUserId } });
   await prisma.post.deleteMany({ where: { authorId: testUserId } });
   await prisma.topic.deleteMany({ where: { id: testTopicId } });
-  await prisma.otpToken.deleteMany({ where: { userId: testUserId } });
-  await prisma.user.deleteMany({ where: { id: testUserId } });
-  await prisma.user.deleteMany({ where: { id: voterUserId } });
+  await prisma.refreshToken.deleteMany({
+    where: { userId: { in: [testUserId, voterUserId] } },
+  });
+  await prisma.otpToken.deleteMany({
+    where: { userId: { in: [testUserId, voterUserId] } },
+  });
+  await prisma.user.deleteMany({
+    where: { id: { in: [testUserId, voterUserId] } },
+  });
   await prisma.$disconnect();
 }, 30000);
 
@@ -109,7 +115,7 @@ describe("POST /api/posts", () => {
   it("should return 400 with missing fields", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies)
       .send({
         content: "This content is long enough but missing fields.",
       });
@@ -120,7 +126,7 @@ describe("POST /api/posts", () => {
   it("should return 400 with content under 10 characters", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies)
       .send({
         title: "Valid Title",
         content: "Short",
@@ -133,7 +139,7 @@ describe("POST /api/posts", () => {
   it("should return 400 with title under 3 characters", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies)
       .send({
         title: "Hi",
         content: "This is valid content for the test.",
@@ -146,7 +152,7 @@ describe("POST /api/posts", () => {
   it("should return 400 with non-existent topicId", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies)
       .send({
         title: "Valid Title",
         content: "This is valid content for the test.",
@@ -159,7 +165,7 @@ describe("POST /api/posts", () => {
   it("should return 201 with valid token and valid body", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies)
       .send({
         title: "Valid Post Title",
         content: "This is valid content for our integration test.",
@@ -176,7 +182,7 @@ describe("POST /api/posts", () => {
   it("should return 201 when creating an anonymous post", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies)
       .send({
         title: "Anonymous Post",
         content: "This is a secret post.",
@@ -216,24 +222,24 @@ describe("GET /api/posts/:id", () => {
   it("should return correct userVoteStatus for authenticated user", async () => {
     let res = await request(app)
       .get(`/api/posts/${testPostId}`)
-      .set("Authorization", `Bearer ${authToken}`);
+      .set("Cookie", validCookies);
 
     expect(res.status).toBe(200);
     expect(res.body.userVoteStatus).toBeNull();
 
     await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies)
       .send({ voteType: "UP" });
     res = await request(app)
       .get(`/api/posts/${testPostId}`)
-      .set("Authorization", `Bearer ${authToken}`);
+      .set("Cookie", validCookies);
 
     expect(res.status).toBe(200);
     expect(res.body.userVoteStatus).toBe("UP");
     await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies)
       .send({ voteType: "UP" });
   });
 
@@ -256,7 +262,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 400 with invalid voteType", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies)
       .send({
         voteType: "UPVOTE",
       });
@@ -267,7 +273,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 400 for non-existent post", async () => {
     const res = await request(app)
       .post("/api/posts/99999/vote")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies)
       .send({
         voteType: "UP",
       });
@@ -278,7 +284,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 200 and increment upvote on New Vote (Scenario A)", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${voterToken}`)
+      .set("Cookie", voterCookies)
       .send({
         voteType: "UP",
       });
@@ -302,7 +308,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 200 and adjust counts on Switch Vote (Scenario C)", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${voterToken}`)
+      .set("Cookie", voterCookies)
       .send({
         voteType: "DOWN",
       });
@@ -316,7 +322,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 200 and decrement counts on Toggle Off (Scenario B)", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${voterToken}`)
+      .set("Cookie", voterCookies)
       .send({
         voteType: "DOWN",
       });
@@ -330,14 +336,11 @@ describe("POST /api/posts/:id/vote", () => {
 
 describe("GET /api/posts", () => {
   it("should return 200 and a list of posts ordered by newest first", async () => {
-    await request(app)
-      .post("/api/posts")
-      .set("Authorization", `Bearer ${authToken}`)
-      .send({
-        title: "The Newest Post",
-        content: "This is a brand new post to test the sorting logic.",
-        topicId: testTopicId,
-      });
+    await request(app).post("/api/posts").set("Cookie", validCookies).send({
+      title: "The Newest Post",
+      content: "This is a brand new post to test the sorting logic.",
+      topicId: testTopicId,
+    });
 
     const res = await request(app).get("/api/posts");
 
@@ -421,7 +424,7 @@ describe("DELETE /api/posts/:id", () => {
   beforeAll(async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies)
       .send({
         title: "Post to delete",
         content: "This post will be deleted during tests.",
@@ -438,21 +441,21 @@ describe("DELETE /api/posts/:id", () => {
   it("should return 400 for non-existent post", async () => {
     const res = await request(app)
       .delete("/api/posts/99999")
-      .set("Authorization", `Bearer ${authToken}`);
+      .set("Cookie", validCookies);
     expect(res.status).toBe(400);
   });
 
   it("should return 400 if user is not the author", async () => {
     const res = await request(app)
       .delete(`/api/posts/${postToDeleteId}`)
-      .set("Authorization", `Bearer ${voterToken}`);
+      .set("Cookie", voterCookies);
     expect(res.status).toBe(400);
   });
 
   it("should return 200 and delete the post", async () => {
     const res = await request(app)
       .delete(`/api/posts/${postToDeleteId}`)
-      .set("Authorization", `Bearer ${authToken}`);
+      .set("Cookie", validCookies);
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Post deleted successfully");
 

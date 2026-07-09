@@ -16,8 +16,8 @@ jest.spyOn(notificationEmitter, "emit").mockImplementation(() => {});
 
 const timestamp = Date.now();
 
-let authToken1;
-let authToken2;
+let validCookies1 = [];
+let validCookies2 = [];
 let testUser1Id;
 let testUser2Id;
 let testTopicId;
@@ -59,12 +59,12 @@ beforeAll(async () => {
   const loginRes1 = await request(app)
     .post("/api/auth/login")
     .send({ email: user1.email, password });
-  authToken1 = loginRes1.body.token;
+  validCookies1 = loginRes1.headers["set-cookie"] || [];
 
   const loginRes2 = await request(app)
     .post("/api/auth/login")
     .send({ email: user2.email, password });
-  authToken2 = loginRes2.body.token;
+  validCookies2 = loginRes2.headers["set-cookie"] || [];
 
   const topic = await prisma.topic.create({
     data: {
@@ -98,6 +98,9 @@ beforeAll(async () => {
 afterAll(async () => {
   await prisma.post.deleteMany({ where: { topicId: testTopicId } });
   await prisma.topic.deleteMany({ where: { id: testTopicId } });
+  await prisma.refreshToken.deleteMany({
+    where: { userId: { in: [testUser1Id, testUser2Id] } },
+  });
   await prisma.otpToken.deleteMany({
     where: { userId: { in: [testUser1Id, testUser2Id] } },
   });
@@ -122,7 +125,7 @@ describe("POST /api/posts/:id/comments", () => {
   it("should return 400 for non-existent post", async () => {
     const res = await request(app)
       .post("/api/posts/99999/comments")
-      .set("Authorization", `Bearer ${authToken1}`)
+      .set("Cookie", validCookies1)
       .send({ content: "Valid content" });
     expect(res.status).toBe(400);
   });
@@ -130,7 +133,7 @@ describe("POST /api/posts/:id/comments", () => {
   it("should return 201 when creating a top-level comment", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPost1Id}/comments`)
-      .set("Authorization", `Bearer ${authToken2}`)
+      .set("Cookie", validCookies2)
       .send({ content: "First top-level comment" });
 
     expect(res.status).toBe(201);
@@ -154,7 +157,7 @@ describe("POST /api/posts/:id/comments", () => {
   it("should return 400 when parentId belongs to a completely different post", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPost2Id}/comments`)
-      .set("Authorization", `Bearer ${authToken1}`)
+      .set("Cookie", validCookies1)
       .send({
         content: "Trying to reply to a comment on Post 1",
         parentId: topLevelCommentId,
@@ -169,7 +172,7 @@ describe("POST /api/posts/:id/comments", () => {
   it("should return 201 when creating a nested reply", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPost1Id}/comments`)
-      .set("Authorization", `Bearer ${authToken1}`)
+      .set("Cookie", validCookies1)
       .send({
         content: "This is a reply to the top level comment.",
         parentId: topLevelCommentId,
@@ -194,7 +197,7 @@ describe("POST /api/posts/:id/comments", () => {
   it("should return 201 when creating an anonymous comment", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPost1Id}/comments`)
-      .set("Authorization", `Bearer ${authToken1}`)
+      .set("Cookie", validCookies1)
       .send({ content: "Secret comment", isAnonymous: true });
 
     expect(res.status).toBe(201);
@@ -236,7 +239,7 @@ describe("PUT /api/comments/:id", () => {
   beforeAll(async () => {
     const res = await request(app)
       .post(`/api/posts/${testPost1Id}/comments`)
-      .set("Authorization", `Bearer ${authToken2}`)
+      .set("Cookie", validCookies2)
       .send({ content: "User 2's original comment" });
     user2CommentId = res.body.id;
   });
@@ -251,7 +254,7 @@ describe("PUT /api/comments/:id", () => {
   it("should return 400 when trying to edit someone else's comment", async () => {
     const res = await request(app)
       .put(`/api/comments/${user2CommentId}`)
-      .set("Authorization", `Bearer ${authToken1}`)
+      .set("Cookie", validCookies1)
       .send({ content: "Hacked update" });
 
     expect(res.status).toBe(400);
@@ -261,7 +264,7 @@ describe("PUT /api/comments/:id", () => {
   it("should return 200 when editing own comment", async () => {
     const res = await request(app)
       .put(`/api/comments/${user2CommentId}`)
-      .set("Authorization", `Bearer ${authToken2}`)
+      .set("Cookie", validCookies2)
       .send({ content: "User 2's officially updated comment" });
 
     expect(res.status).toBe(200);
@@ -273,7 +276,7 @@ describe("DELETE /api/comments/:id", () => {
   it("should return 400 when trying to delete someone else's comment", async () => {
     const res = await request(app)
       .delete(`/api/comments/${user2CommentId}`)
-      .set("Authorization", `Bearer ${authToken1}`);
+      .set("Cookie", validCookies1);
 
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/Unauthorized/);
@@ -282,7 +285,7 @@ describe("DELETE /api/comments/:id", () => {
   it("should return 200 when deleting own comment", async () => {
     const res = await request(app)
       .delete(`/api/comments/${user2CommentId}`)
-      .set("Authorization", `Bearer ${authToken2}`);
+      .set("Cookie", validCookies2);
 
     expect(res.status).toBe(200);
   });
@@ -290,7 +293,7 @@ describe("DELETE /api/comments/:id", () => {
   it("should cascade delete replies when a parent comment is deleted", async () => {
     const deleteRes = await request(app)
       .delete(`/api/comments/${topLevelCommentId}`)
-      .set("Authorization", `Bearer ${authToken2}`);
+      .set("Cookie", validCookies2);
     expect(deleteRes.status).toBe(200);
 
     const cascadeCheck = await prisma.comment.findUnique({

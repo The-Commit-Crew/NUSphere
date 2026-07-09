@@ -106,3 +106,40 @@ export const otpSchema = Joi.object({
     "string.empty": "Verification code cannot be empty",
   }),
 });
+
+export const forgotPasswordSchema = Joi.object({
+  email: Joi.string()
+    .email()
+    .pattern(/(@u\.nus\.edu|@nus\.edu\.sg)$/)
+    .optional()
+    .messages({
+      "string.email": "Please enter a valid email address",
+      "string.pattern.base":
+        "Please use your NUS email address (@u.nus.edu or @nus.edu.sg)",
+    }),
+
+  username: Joi.string().alphanum().min(3).max(50).optional().messages({
+    "string.alphanum": "Username can only contain letters and numbers",
+    "string.min": "Username must be at least 3 characters",
+    "string.max": "Username cannot exceed 20 characters",
+  }),
+})
+  .or("email", "username")
+  .messages({
+    "object.missing":
+      "Please provide either your email or username to reset your password",
+  });
+
+export const resetPasswordSchema = Joi.object({
+  newPassword: Joi.string()
+    .min(8)
+    .required()
+    .pattern(/^(?=.*[a-zA-Z])(?=.*\d)/)
+    .messages({
+      "string.min": "Password must be at least 8 characters",
+      "string.pattern.base":
+        "Password must contain at least one letter and one number",
+      "any.required": "Password is required",
+      "string.empty": "Password cannot be empty",
+    }),
+});

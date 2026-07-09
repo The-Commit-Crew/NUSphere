@@ -52,15 +52,17 @@ model User {
   linkedinLink String?
   profilePic   String?
 
-  skills           Skill[]
-  otpTokens        OtpToken[]
-  posts            Post[]
-  votes            Vote[]
-  authoredProjects Project[]            @relation("ProjectAuthor")
-  applications     ProjectApplication[]
-  comments         Comment[]
-  notifications    Notification[]
-  bookmarks        Bookmark[]
+  skills              Skill[]
+  otpTokens           OtpToken[]
+  posts               Post[]
+  votes               Vote[]
+  authoredProjects    Project[]            @relation("ProjectAuthor")
+  applications        ProjectApplication[]
+  comments            Comment[]
+  notifications       Notification[]
+  bookmarks           Bookmark[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model OtpToken {
@@ -199,4 +201,24 @@ model Bookmark {
   createdAt DateTime @default(now())
 
   @@unique([userId, postId])
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

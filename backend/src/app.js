@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import prisma from "./config/prisma.js";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger.js";
@@ -19,8 +20,8 @@ const app = express();
 
 export const allowedOrigins = [
   "http://localhost:5173",
-  "https://nusphere-web.vercel.app",
-];
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
 app.use(
   cors({
@@ -40,6 +41,7 @@ app.use(
   }),
 );
 app.use(express.json());
+app.use(cookieParser());
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/auth", authRoutes);
