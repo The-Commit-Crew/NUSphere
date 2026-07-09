@@ -8,6 +8,7 @@ import {
 } from "../validators/authValidator.js";
 import { generateOtp } from "../utils/generateOtp.js";
 import { sendOtpEmail } from "../utils/sendEmail.js";
+import jwt from "jsonwebtoken";
 
 const issueOtp = async (userId, email) => {
   await prisma.otpToken.updateMany({
@@ -110,10 +111,11 @@ export const loginUserService = async ({ email, username, password }) => {
       message: "Account not verified. A fresh OTP has been sent to your email",
     };
   }
-  const token = generateToken(user.id);
+  const { token, refresh } = await generateToken(user.id);
   return {
     action: "login",
     token,
+    refresh,
     user: {
       id: user.id,
       email: user.email,
@@ -161,10 +163,11 @@ export const verifyOtpService = async ({ email, otp }) => {
       data: { isVerified: true },
     }),
   ]);
-  const token = generateToken(user.id);
+  const { token, refresh } = await generateToken(user.id);
   return {
     action: "verified",
     token,
+    refresh,
     user: {
       id: user.id,
       email: user.email,
@@ -185,4 +188,59 @@ export const resendOtpService = async ({ email }) => {
   }
   await issueOtp(user.id, normalizedEmail);
   return { message: "OTP resent to your NUS email" };
+};
+
+export const refreshAccessTokenService = async (oldRefreshToken) => {
+  if (!oldRefreshToken) {
+    throw new Error("Access denied. No refresh token provided");
+  }
+  let payload;
+  jwt.verify(
+    oldRefreshToken,
+    process.env.REFRESH_TOKEN_SECRET,
+    (error, user) => {
+      if (error) {
+        throw new Error("Invalid or expired token");
+      }
+      payload = user;
+    },
+  );
+  const existingToken = await prisma.refreshToken.findUnique({
+    where: { token: oldRefreshToken },
+  });
+  if (!existingToken) {
+    throw new Error("Refresh token has been revoked or logged out");
+  }
+  await prisma.refreshToken.delete({
+    where: {
+      token: oldRefreshToken,
+    },
+  });
+  return await generateToken(payload.userId);
+};
+
+export const logoutService = async (refreshToken) => {
+  if (!refreshToken) return;
+  try {
+    await prisma.refreshToken.delete({
+      where: {
+        token: refreshToken,
+      },
+    });
+  } catch (error) {}
+  return { message: "Logged out successfully" };
+};
+
+export const logoutOfAllDevicesService = async (userId) => {
+  if (!userId) {
+    throw new Error("User ID not provided");
+  }
+  try {
+    await prisma.refreshToken.deleteMany({
+      where: {
+        userId,
+      },
+    });
+  } catch (error) {}
+  return { message: "Logged out of all devices successfully" };
 };

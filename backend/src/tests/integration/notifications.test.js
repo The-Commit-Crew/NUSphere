@@ -17,7 +17,7 @@ jest.mock("../../utils/notificationEmitter.js", () => ({
 
 const timestamp = Date.now();
 
-let authToken1;
+let validCookies1 = [];
 let testUser1Id;
 let testUser2Id;
 let testTopicId;
@@ -58,7 +58,7 @@ beforeAll(async () => {
   const loginRes1 = await request(app)
     .post("/api/auth/login")
     .send({ email: user1.email, password });
-  authToken1 = loginRes1.body.token;
+  validCookies1 = loginRes1.headers["set-cookie"] || [];
 
   const topic = await prisma.topic.create({
     data: {
@@ -128,6 +128,9 @@ afterAll(async () => {
   await prisma.comment.deleteMany({ where: { postId: testPostId } });
   await prisma.post.deleteMany({ where: { topicId: testTopicId } });
   await prisma.topic.deleteMany({ where: { id: testTopicId } });
+  await prisma.refreshToken.deleteMany({
+    where: { userId: { in: [testUser1Id, testUser2Id] } },
+  });
   await prisma.otpToken.deleteMany({
     where: { userId: { in: [testUser1Id, testUser2Id] } },
   });
@@ -150,7 +153,7 @@ describe("GET /api/notifications", () => {
   it("should return 200 and a list of notifications with included relational data", async () => {
     const res = await request(app)
       .get("/api/notifications")
-      .set("Authorization", `Bearer ${authToken1}`);
+      .set("Cookie", validCookies1);
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
@@ -177,7 +180,7 @@ describe("PATCH /api/notifications/:id/read", () => {
   it("should return 400 for a non-existent notification", async () => {
     const res = await request(app)
       .patch("/api/notifications/999999/read")
-      .set("Authorization", `Bearer ${authToken1}`);
+      .set("Cookie", validCookies1);
 
     expect(res.status).toBe(400);
     expect(res.body.message).toBe("Notification not found");
@@ -186,7 +189,7 @@ describe("PATCH /api/notifications/:id/read", () => {
   it("should return 400 when trying to mark another user's notification as read", async () => {
     const res = await request(app)
       .patch(`/api/notifications/${otherUserNotificationId}/read`)
-      .set("Authorization", `Bearer ${authToken1}`);
+      .set("Cookie", validCookies1);
 
     expect(res.status).toBe(400);
     expect(res.body.message).toBe("Unauthorized to modify this notification");
@@ -195,7 +198,7 @@ describe("PATCH /api/notifications/:id/read", () => {
   it("should return 200 and mark the notification as read", async () => {
     const res = await request(app)
       .patch(`/api/notifications/${unreadNotificationId}/read`)
-      .set("Authorization", `Bearer ${authToken1}`);
+      .set("Cookie", validCookies1);
 
     expect(res.status).toBe(200);
     expect(res.body.isRead).toBe(true);

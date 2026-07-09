@@ -21,11 +21,12 @@ const options = {
     ],
     components: {
       securitySchemes: {
-        bearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
-          description: "Enter your JWT token",
+        cookieAuth: {
+          type: "apiKey",
+          in: "cookie",
+          name: "accessToken",
+          description:
+            "HttpOnly cookie containing the access token for authentication. Swagger will automatically pass this if it is set in your browser during testing.",
         },
       },
       schemas: {
@@ -458,12 +459,6 @@ const options = {
               type: "string",
               enum: ["login", "otp_required", "verified"],
               example: "login",
-            },
-            token: {
-              type: "string",
-              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-              description:
-                "JWT token — only present when action is login or verified",
             },
             email: {
               type: "string",

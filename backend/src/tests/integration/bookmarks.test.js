@@ -5,7 +5,7 @@ import prisma from "../../config/prisma.js";
 
 const timestamp = Date.now();
 
-let authToken;
+let validCookies;
 let testUserId;
 let testTopicId;
 let testPostId;
@@ -38,7 +38,7 @@ beforeAll(async () => {
     .post("/api/auth/login")
     .send({ email: testUser.email, password: testUser.password });
 
-  authToken = loginRes.body.token;
+  validCookies = loginRes.headers["set-cookie"];
 
   const topic = await prisma.topic.create({
     data: {
@@ -76,7 +76,7 @@ describe("POST /api/bookmarks/:id", () => {
   it("should return 400 for a non-existent post", async () => {
     const res = await request(app)
       .post("/api/bookmarks/999999")
-      .set("Authorization", `Bearer ${authToken}`);
+      .set("Cookie", validCookies);
     expect(res.status).toBe(400);
     expect(res.body.message).toBe("Post not found");
   });
@@ -84,7 +84,7 @@ describe("POST /api/bookmarks/:id", () => {
   it("should return 200 and bookmarkStatus: true when toggling ON", async () => {
     const res = await request(app)
       .post(`/api/bookmarks/${testPostId}`)
-      .set("Authorization", `Bearer ${authToken}`);
+      .set("Cookie", validCookies);
 
     expect(res.status).toBe(200);
     expect(res.body.bookmarkStatus).toBe(true);
@@ -93,7 +93,7 @@ describe("POST /api/bookmarks/:id", () => {
   it("should return 200 and bookmarkStatus: false when toggling OFF", async () => {
     const res = await request(app)
       .post(`/api/bookmarks/${testPostId}`)
-      .set("Authorization", `Bearer ${authToken}`);
+      .set("Cookie", validCookies);
 
     expect(res.status).toBe(200);
     expect(res.body.bookmarkStatus).toBe(false);
@@ -104,7 +104,7 @@ describe("GET /api/bookmarks", () => {
   beforeAll(async () => {
     await request(app)
       .post(`/api/bookmarks/${testPostId}`)
-      .set("Authorization", `Bearer ${authToken}`);
+      .set("Cookie", validCookies);
   });
 
   it("should return 401 without token", async () => {
@@ -115,7 +115,7 @@ describe("GET /api/bookmarks", () => {
   it("should return 200 and a list of bookmarked posts", async () => {
     const res = await request(app)
       .get("/api/bookmarks")
-      .set("Authorization", `Bearer ${authToken}`);
+      .set("Cookie", validCookies);
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
