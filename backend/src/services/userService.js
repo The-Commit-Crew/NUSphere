@@ -15,10 +15,7 @@ export const updateUserProfileService = async (
   if (error) {
     throw new Error(error.details[0].message);
   }
-  const normalizedSkills = value.skills?.map((skill) => {
-    const lower = skill.toLowerCase();
-    return lower.charAt(0).toUpperCase() + lower.slice(1);
-  });
+  const normalizedSkills = value.skills?.map((skill) => skill.toUpperCase());
   const user = await prisma.user.update({
     where: { id: userId },
     data: {

@@ -80,7 +80,7 @@ router.get("/:id", getProjectById);
  * /api/projects:
  *   post:
  *     summary: Create a new project
- *     description: Creates a new collaboration project. Skills are normalised to title case and created if they do not already exist. Requires a valid JWT token.
+ *     description: Creates a new collaboration project. Skills are normalised to uppercase and created if they do not already exist. Requires a valid JWT token.
  *     tags: [Projects]
  *     security:
  *       - bearerAuth: []

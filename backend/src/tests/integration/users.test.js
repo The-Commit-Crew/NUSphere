@@ -105,9 +105,9 @@ describe("PUT /api/users/me", () => {
     expect(res.body.githubLink).toBe("https://github.com/test");
 
     const skillNames = res.body.skills.map((s) => s.name);
-    expect(skillNames).toContain("React");
-    expect(skillNames).toContain("Node.js");
-    expect(skillNames).toContain("Prisma");
+    expect(skillNames).toContain("REACT");
+    expect(skillNames).toContain("NODE.JS");
+    expect(skillNames).toContain("PRISMA");
   });
 });
 
