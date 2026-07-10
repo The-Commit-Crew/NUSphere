@@ -12,27 +12,26 @@ function Navbar() {
   }
 
   return (
-    <nav style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E8E0D8' }} className="px-6 py-4">
+    <nav style={{ backgroundColor: '#1A1512' }} className="px-6 py-4">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
 
         {/* Brand */}
-        <Link to="/" style={{ color: '#1A1512' }} className="text-xl font-bold tracking-tight">
+        <Link to="/" style={{ color: '#F0EAE4', fontFamily: "'Playfair Display', serif" }} className="text-xl font-bold tracking-tight">
           NUSphere
         </Link>
 
         {/* Nav Links */}
         <div className="flex items-center gap-8">
-          <Link to="/" style={{ color: '#1A1512' }} className="text-sm hover:opacity-70">
+          <Link to="/" style={{ color: '#F5F0EB' }} className="text-sm font-medium hover:opacity-70">
             Home
           </Link>
-          <Link to="/topics" style={{ color: '#1A1512' }} className="text-sm hover:opacity-70">
+          <Link to="/topics" style={{ color: '#B8ADA4' }} className="text-sm hover:opacity-70">
             Topics
           </Link>
-          <Link to="/collaborate" style={{ color: '#1A1512' }} className="text-sm hover:opacity-70">
+          <Link to="/collaborate" style={{ color: '#B8ADA4' }} className="text-sm hover:opacity-70">
             Collaborate
           </Link>
         </div>
-
         {/* Right side — changes based on login state */}
         <div className="flex items-center gap-3">
           {user ? (
@@ -47,14 +46,14 @@ function Navbar() {
           </Link>
           <Link
           to={`/u/${user.username}`}
-          style={{ color: '#1A1512' }}
+          style={{ color: '#F5F0EB' }}
           className="text-sm font-medium hover:opacity-70"
         >
           {user.username}
         </Link>
           <button
             onClick={handleLogout}
-            style={{ border: '1px solid #E8E0D8', color: '#9A8880' }}
+            style={{ border: '1px solid #4A423C', color: '#B8ADA4' }}
             className="px-4 py-2 rounded-full text-sm hover:opacity-70"
           >
             Logout
@@ -63,9 +62,9 @@ function Navbar() {
         </>
           ) : (
             <>
-              <Link
+             <Link
                 to="/login"
-                style={{ color: '#1A1512' }}
+                style={{ color: '#F5F0EB' }}
                 className="text-sm hover:opacity-70"
               >
                 Login

@@ -1,38 +1,50 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
+import Topicstrip from '../components/Topicstrip'
 import Postlist from '../components/Postlist'
-import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { getAllTopics } from '../services/Authservice'
 
 function Homepage() {
   const { user } = useAuth()
   const [selectedTopicId, setSelectedTopicId] = useState(null)
+  const [topics, setTopics] = useState([])
+  const [topicsLoading, setTopicsLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchTopics() {
+      try {
+        const data = await getAllTopics()
+        setTopics(data)
+      } catch (err) {
+        console.error('Failed to load topics:', err)
+      } finally {
+        setTopicsLoading(false)
+      }
+    }
+    fetchTopics()
+  }, [])
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-6">
+    <div>
+      <Topicstrip
+        topics={topics}
+        selectedTopicId={selectedTopicId}
+        onSelectTopic={setSelectedTopicId}
+        showAskButton={!!user}
+      />
 
-      {/* Top bar */}
-      <div style={{ borderBottom: '1px solid #E8E0D8' }} className="flex items-center gap-6 mb-6 pb-3">
-        {user && (
-          <Link
-            to="/create-post"
-            style={{ marginLeft: 'auto', border: '1px solid #C4552A', color: '#C4552A' }}
-            className="px-4 py-1.5 rounded-full text-sm font-medium hover:opacity-80"
-          >
-            + Ask a question
-          </Link>
-        )}
+      <div className="max-w-6xl mx-auto px-6 py-6">
+        <div className="flex gap-6 items-start">
+          <Sidebar
+            topics={topics}
+            loading={topicsLoading}
+            selectedTopicId={selectedTopicId}
+            onSelectTopic={setSelectedTopicId}
+          />
+          <Postlist selectedTopicId={selectedTopicId} />
+        </div>
       </div>
-
-      {/* Two column layout */}
-      <div className="flex gap-6">
-        <Sidebar
-          selectedTopicId={selectedTopicId}
-          onSelectTopic={setSelectedTopicId}
-        />
-        <Postlist selectedTopicId={selectedTopicId} />
-      </div>
-
     </div>
   )
 }
