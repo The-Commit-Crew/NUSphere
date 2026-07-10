@@ -4,6 +4,8 @@ import cookieParser from "cookie-parser";
 import prisma from "./config/prisma.js";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger.js";
+import { doubleCsrfProtection } from "./config/csrf.js";
+import { globalErrorHandler } from "./middleware/errorHandler.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import topicRoutes from "./routes/topicRoutes.js";
@@ -26,22 +28,22 @@ export const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) {
-        return callback(null, true);
-      }
+      if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
+        callback(null, true);
       } else {
         callback(new Error(`CORS policy: origin ${origin} not allowed`));
       }
     },
     credentials: true,
-    methods: ["GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS", "HEAD"], // Added HEAD
+    allowedHeaders: ["Content-Type", "x-csrf-token"],
   }),
 );
 app.use(express.json());
 app.use(cookieParser());
+app.use(doubleCsrfProtection);
+
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/auth", authRoutes);
@@ -73,5 +75,7 @@ app.get("/health", async (req, res) => {
     });
   }
 });
+
+app.use(globalErrorHandler);
 
 export default app;

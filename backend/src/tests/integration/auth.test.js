@@ -8,6 +8,7 @@ import {
   jest,
 } from "@jest/globals";
 import request from "supertest";
+import { loginAndGetCookies } from "./testUtils.js";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
 import crypto from "crypto";
@@ -27,9 +28,14 @@ const testUser = {
 };
 
 let testUserId;
+let anonCookies = [];
+let anonCsrfToken = "";
 let skipGlobalReset = false;
 
 beforeAll(async () => {
+  const csrfRes = await request(app).get("/api/auth/csrf-token");
+  anonCookies = csrfRes.headers["set-cookie"];
+  anonCsrfToken = csrfRes.body.csrfToken;
   await prisma.otpToken.deleteMany({
     where: { user: { email: testUser.email } },
   });
@@ -83,8 +89,7 @@ afterAll(async () => {
 
 describe("POST /api/auth/register", () => {
   it("should fail when registering with the same email again", async () => {
-    const res = await request(app)
-      .post("/api/auth/register")
+    const res = await request(app).post("/api/auth/register").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({
         ...testUser,
         username: `diffuser${timestamp}`,
@@ -94,8 +99,7 @@ describe("POST /api/auth/register", () => {
   });
 
   it("should fail when registering with the same username but different email", async () => {
-    const res = await request(app)
-      .post("/api/auth/register")
+    const res = await request(app).post("/api/auth/register").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({
         ...testUser,
         email: `diff${timestamp}@u.nus.edu`,
@@ -105,8 +109,7 @@ describe("POST /api/auth/register", () => {
   });
 
   it("should fail with a non-NUS email", async () => {
-    const res = await request(app)
-      .post("/api/auth/register")
+    const res = await request(app).post("/api/auth/register").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({
         ...testUser,
         email: `other${timestamp}@gmail.com`,
@@ -116,8 +119,7 @@ describe("POST /api/auth/register", () => {
   });
 
   it("should fail when firstName is missing", async () => {
-    const res = await request(app)
-      .post("/api/auth/register")
+    const res = await request(app).post("/api/auth/register").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({
         ...testUser,
         email: `fn${timestamp}@u.nus.edu`,
@@ -128,8 +130,7 @@ describe("POST /api/auth/register", () => {
   });
 
   it("should fail when lastName is missing", async () => {
-    const res = await request(app)
-      .post("/api/auth/register")
+    const res = await request(app).post("/api/auth/register").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({
         ...testUser,
         email: `ln${timestamp}@u.nus.edu`,
@@ -140,8 +141,7 @@ describe("POST /api/auth/register", () => {
   });
 
   it("should fail when username is missing", async () => {
-    const res = await request(app)
-      .post("/api/auth/register")
+    const res = await request(app).post("/api/auth/register").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({
         ...testUser,
         email: `un${timestamp}@u.nus.edu`,
@@ -151,8 +151,7 @@ describe("POST /api/auth/register", () => {
   });
 
   it("should fail when password is missing", async () => {
-    const res = await request(app)
-      .post("/api/auth/register")
+    const res = await request(app).post("/api/auth/register").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({
         ...testUser,
         email: `pw${timestamp}@u.nus.edu`,
@@ -163,8 +162,7 @@ describe("POST /api/auth/register", () => {
   });
 
   it("should fail with a password under 8 characters", async () => {
-    const res = await request(app)
-      .post("/api/auth/register")
+    const res = await request(app).post("/api/auth/register").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({
         ...testUser,
         email: `sh${timestamp}@u.nus.edu`,
@@ -175,8 +173,7 @@ describe("POST /api/auth/register", () => {
   });
 
   it("should fail with a password containing no numbers", async () => {
-    const res = await request(app)
-      .post("/api/auth/register")
+    const res = await request(app).post("/api/auth/register").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({
         ...testUser,
         email: `nn${timestamp}@u.nus.edu`,
@@ -187,8 +184,7 @@ describe("POST /api/auth/register", () => {
   });
 
   it("should fail with a username containing special characters", async () => {
-    const res = await request(app)
-      .post("/api/auth/register")
+    const res = await request(app).post("/api/auth/register").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({
         ...testUser,
         email: `sc${timestamp}@u.nus.edu`,
@@ -198,8 +194,7 @@ describe("POST /api/auth/register", () => {
   });
 
   it("should fail with a firstName containing numbers", async () => {
-    const res = await request(app)
-      .post("/api/auth/register")
+    const res = await request(app).post("/api/auth/register").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({
         ...testUser,
         email: `fi${timestamp}@u.nus.edu`,
@@ -212,7 +207,7 @@ describe("POST /api/auth/register", () => {
 
 describe("POST /api/auth/login", () => {
   it("should return otp_required when user is not verified", async () => {
-    const res = await request(app).post("/api/auth/login").send({
+    const res = await request(app).post("/api/auth/login").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       email: testUser.email,
       password: testUser.password,
     });
@@ -223,7 +218,7 @@ describe("POST /api/auth/login", () => {
   }, 15000);
 
   it("should fail with wrong password", async () => {
-    const res = await request(app).post("/api/auth/login").send({
+    const res = await request(app).post("/api/auth/login").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       email: testUser.email,
       password: "WrongPassword1",
     });
@@ -232,7 +227,7 @@ describe("POST /api/auth/login", () => {
   });
 
   it("should fail with non-existent email", async () => {
-    const res = await request(app).post("/api/auth/login").send({
+    const res = await request(app).post("/api/auth/login").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       email: "nobody@u.nus.edu",
       password: "Password1",
     });
@@ -240,7 +235,7 @@ describe("POST /api/auth/login", () => {
   });
 
   it("should fail with non-existent username", async () => {
-    const res = await request(app).post("/api/auth/login").send({
+    const res = await request(app).post("/api/auth/login").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       username: "nonexistentuser",
       password: "Password1",
     });
@@ -248,14 +243,14 @@ describe("POST /api/auth/login", () => {
   });
 
   it("should fail when neither email nor username is provided", async () => {
-    const res = await request(app).post("/api/auth/login").send({
+    const res = await request(app).post("/api/auth/login").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       password: "Password1",
     });
     expect(res.status).toBe(400);
   });
 
   it("should fail when password is missing", async () => {
-    const res = await request(app).post("/api/auth/login").send({
+    const res = await request(app).post("/api/auth/login").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       email: testUser.email,
     });
     expect(res.status).toBe(400);
@@ -267,7 +262,7 @@ describe("POST /api/auth/login", () => {
       data: { isVerified: true },
     });
 
-    const res = await request(app).post("/api/auth/login").send({
+    const res = await request(app).post("/api/auth/login").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       email: testUser.email,
       password: testUser.password,
     });
@@ -289,7 +284,7 @@ describe("POST /api/auth/login", () => {
       data: { isVerified: true },
     });
 
-    const res = await request(app).post("/api/auth/login").send({
+    const res = await request(app).post("/api/auth/login").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       username: testUser.username,
       password: testUser.password,
     });
@@ -305,7 +300,7 @@ describe("POST /api/auth/login", () => {
 
 describe("POST /api/auth/verify-otp", () => {
   it("should fail with a wrong OTP", async () => {
-    const res = await request(app).post("/api/auth/verify-otp").send({
+    const res = await request(app).post("/api/auth/verify-otp").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       email: testUser.email,
       otp: "000000",
     });
@@ -314,7 +309,7 @@ describe("POST /api/auth/verify-otp", () => {
   });
 
   it("should fail with OTP of wrong format", async () => {
-    const res = await request(app).post("/api/auth/verify-otp").send({
+    const res = await request(app).post("/api/auth/verify-otp").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       email: testUser.email,
       otp: "abcdef",
     });
@@ -322,7 +317,7 @@ describe("POST /api/auth/verify-otp", () => {
   });
 
   it("should fail with OTP under 6 digits", async () => {
-    const res = await request(app).post("/api/auth/verify-otp").send({
+    const res = await request(app).post("/api/auth/verify-otp").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       email: testUser.email,
       otp: "12345",
     });
@@ -330,14 +325,14 @@ describe("POST /api/auth/verify-otp", () => {
   });
 
   it("should fail when email is missing", async () => {
-    const res = await request(app).post("/api/auth/verify-otp").send({
+    const res = await request(app).post("/api/auth/verify-otp").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       otp: "123456",
     });
     expect(res.status).toBe(400);
   });
 
   it("should fail when OTP is missing", async () => {
-    const res = await request(app).post("/api/auth/verify-otp").send({
+    const res = await request(app).post("/api/auth/verify-otp").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       email: testUser.email,
     });
     expect(res.status).toBe(400);
@@ -353,7 +348,7 @@ describe("POST /api/auth/verify-otp", () => {
       },
     });
 
-    const res = await request(app).post("/api/auth/verify-otp").send({
+    const res = await request(app).post("/api/auth/verify-otp").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       email: testUser.email,
       otp: validOtp,
     });
@@ -375,7 +370,7 @@ describe("POST /api/auth/verify-otp", () => {
       },
     });
 
-    const res = await request(app).post("/api/auth/verify-otp").send({
+    const res = await request(app).post("/api/auth/verify-otp").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       email: testUser.email,
       otp: usedOtp,
     });
@@ -387,7 +382,7 @@ describe("POST /api/auth/verify-otp", () => {
 
 describe("POST /api/auth/resend-otp", () => {
   it("should fail for non-existent email", async () => {
-    const res = await request(app).post("/api/auth/resend-otp").send({
+    const res = await request(app).post("/api/auth/resend-otp").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       email: "nobody@u.nus.edu",
     });
     expect(res.status).toBe(400);
@@ -399,7 +394,7 @@ describe("POST /api/auth/resend-otp", () => {
       data: { isVerified: true },
     });
 
-    const res = await request(app).post("/api/auth/resend-otp").send({
+    const res = await request(app).post("/api/auth/resend-otp").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       email: testUser.email,
     });
 
@@ -408,7 +403,7 @@ describe("POST /api/auth/resend-otp", () => {
   });
 
   it("should resend OTP for an unverified user", async () => {
-    const res = await request(app).post("/api/auth/resend-otp").send(
+    const res = await request(app).post("/api/auth/resend-otp").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send(
       {
         email: testUser.email,
       },
@@ -420,7 +415,7 @@ describe("POST /api/auth/resend-otp", () => {
   });
 
   it("should fail with a non-NUS email format", async () => {
-    const res = await request(app).post("/api/auth/resend-otp").send({
+    const res = await request(app).post("/api/auth/resend-otp").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({
       email: "testuser@gmail.com",
     });
     expect(res.status).toBe(400);
@@ -429,20 +424,18 @@ describe("POST /api/auth/resend-otp", () => {
 
 describe("POST /api/auth/forgot-password", () => {
   it("should fail when neither email nor username is provided", async () => {
-    const res = await request(app).post("/api/auth/forgot-password").send({});
+    const res = await request(app).post("/api/auth/forgot-password").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken).send({});
     expect(res.status).toBe(400);
   });
 
   it("should fail with a non-NUS email", async () => {
-    const res = await request(app)
-      .post("/api/auth/forgot-password")
+    const res = await request(app).post("/api/auth/forgot-password").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({ email: "testuser@gmail.com" });
     expect(res.status).toBe(400);
   });
 
   it("should return success for a valid existing email", async () => {
-    const res = await request(app)
-      .post("/api/auth/forgot-password")
+    const res = await request(app).post("/api/auth/forgot-password").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({ email: testUser.email });
 
     expect(res.status).toBe(200);
@@ -452,8 +445,7 @@ describe("POST /api/auth/forgot-password", () => {
   });
 
   it("should fail for a non-existent username", async () => {
-    const res = await request(app)
-      .post("/api/auth/forgot-password")
+    const res = await request(app).post("/api/auth/forgot-password").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({ username: "nonexistentuser" });
 
     expect(res.status).toBe(400);
@@ -463,24 +455,21 @@ describe("POST /api/auth/forgot-password", () => {
 
 describe("PATCH /api/auth/reset-password/:token", () => {
   it("should fail with a password under 8 characters", async () => {
-    const res = await request(app)
-      .patch("/api/auth/reset-password/some-token")
+    const res = await request(app).patch("/api/auth/reset-password/some-token").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({ newPassword: "Pass1" });
 
     expect(res.status).toBe(400);
   });
 
   it("should fail with a password containing no numbers", async () => {
-    const res = await request(app)
-      .patch("/api/auth/reset-password/some-token")
+    const res = await request(app).patch("/api/auth/reset-password/some-token").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({ newPassword: "PasswordOnly" });
 
     expect(res.status).toBe(400);
   });
 
   it("should fail with an invalid or expired reset token", async () => {
-    const res = await request(app)
-      .patch("/api/auth/reset-password/invalid-token")
+    const res = await request(app).patch("/api/auth/reset-password/invalid-token").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({ newPassword: "NewPassword1" });
 
     expect(res.status).toBe(400);
@@ -503,8 +492,7 @@ describe("PATCH /api/auth/reset-password/:token", () => {
       },
     });
 
-    const res = await request(app)
-      .patch(`/api/auth/reset-password/${rawToken}`)
+    const res = await request(app).patch(`/api/auth/reset-password/${rawToken}`).set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
       .send({ newPassword: "NewPassword1" });
 
     expect(res.status).toBe(200);
@@ -528,6 +516,7 @@ describe("PATCH /api/auth/reset-password/:token", () => {
 
 describe("Token Refresh & Logout Flow", () => {
   let validCookies = [];
+let validCsrfToken;
 
   beforeAll(() => {
     skipGlobalReset = true;
@@ -552,24 +541,20 @@ describe("Token Refresh & Logout Flow", () => {
       },
     });
 
-    const res = await request(app).post("/api/auth/login").send({
-      email: testUser.email,
-      password: testUser.password,
-    });
-
-    validCookies = res.headers["set-cookie"] || [];
+    const authData_validCookies = await loginAndGetCookies(testUser.email, testUser.password);
+  validCookies = authData_validCookies.cookies;
+  validCsrfToken = authData_validCookies.csrfToken;
   });
 
   describe("POST /api/auth/refresh", () => {
     it("should fail if no cookies are provided", async () => {
-      const res = await request(app).post("/api/auth/refresh");
+      const res = await request(app).post("/api/auth/refresh").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken);
       expect(res.status).toBe(400);
     });
 
     it("should succeed and set new cookies with a valid refresh token", async () => {
-      const res = await request(app)
-        .post("/api/auth/refresh")
-        .set("Cookie", validCookies);
+      const res = await request(app).post("/api/auth/refresh").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
+        .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
 
       expect(res.status).toBe(200);
       expect(res.headers["set-cookie"]).toBeDefined();
@@ -579,9 +564,9 @@ describe("Token Refresh & Logout Flow", () => {
     });
 
     it("should fail with an invalid/forged refresh token", async () => {
-      const res = await request(app)
-        .post("/api/auth/refresh")
-        .set("Cookie", ["refreshToken=forged_invalid_token_123"]);
+      const res = await request(app).post("/api/auth/refresh").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
+        .set("Cookie", [...anonCookies, "refreshToken=forged_invalid_token_123"])
+        .set("x-csrf-token", anonCsrfToken);
 
       expect(res.status).toBe(400);
     });
@@ -589,9 +574,8 @@ describe("Token Refresh & Logout Flow", () => {
 
   describe("POST /api/auth/logout", () => {
     it("should clear cookies and return 200", async () => {
-      const res = await request(app)
-        .post("/api/auth/logout")
-        .set("Cookie", validCookies);
+      const res = await request(app).post("/api/auth/logout").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
+        .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
 
       expect(res.status).toBe(200);
 
@@ -605,15 +589,14 @@ describe("Token Refresh & Logout Flow", () => {
 
   describe("POST /api/auth/logout-all", () => {
     it("should fail with 401 if no cookies/tokens are provided", async () => {
-      const res = await request(app).post("/api/auth/logout-all");
+      const res = await request(app).post("/api/auth/logout-all").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken);
       expect(res.status).toBe(401);
       expect(res.body.message).toBe("Access denied. No token provided");
     });
 
     it("should clear cookies and delete all refresh tokens successfully", async () => {
-      const res = await request(app)
-        .post("/api/auth/logout-all")
-        .set("Cookie", validCookies);
+      const res = await request(app).post("/api/auth/logout-all").set("Cookie", anonCookies).set("x-csrf-token", anonCsrfToken)
+        .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
 
       expect(res.status).toBe(200);
       expect(res.headers["set-cookie"]).toBeDefined();

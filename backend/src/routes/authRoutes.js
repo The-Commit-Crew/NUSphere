@@ -11,6 +11,7 @@ import {
 } from "../controllers/authController.js";
 import { Router } from "express";
 import { authenticateToken } from "../middleware/authMiddleware.js";
+import { generateCsrfToken } from "../config/csrf.js";
 
 const router = Router();
 
@@ -337,5 +338,36 @@ router.post("/forgot-password", requestPasswordReset);
  *               $ref: '#/components/schemas/Error'
  */
 router.patch("/reset-password/:token", resetPassword);
+
+/**
+ * @swagger
+ * /api/auth/csrf-token:
+ *   get:
+ *     summary: Fetch a CSRF token for state-changing requests
+ *     description: >
+ *       Generates and returns a CSRF token that must be included in the `x-csrf-token` header
+ *       for all POST, PUT, PATCH, and DELETE requests. Also sets the hidden `csrfToken` HttpOnly cookie.
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: CSRF token successfully generated
+ *         headers:
+ *           Set-Cookie:
+ *             description: The HttpOnly cookie used for the Double Submit CSRF defense.
+ *             schema:
+ *               type: string
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 csrfToken:
+ *                   type: string
+ *                   description: The token string to attach to the x-csrf-token header.
+ */
+router.get("/csrf-token", (req, res) => {
+  const token = generateCsrfToken(req, res);
+  res.json({ csrfToken: token });
+});
 
 export default router;

@@ -15,7 +15,7 @@ const router = Router();
  *     description: Modifies the text content of a comment. The user must be authenticated and must be the original author of the comment.
  *     tags: [Comments]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -77,7 +77,7 @@ router.put("/:id", authenticateToken, updateComment);
  *     description: Permanently deletes a comment. If the comment has replies, those replies are also automatically deleted (Cascaded). The user must be authenticated and must be the original author of the comment.
  *     tags: [Comments]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
