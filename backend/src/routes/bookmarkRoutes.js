@@ -15,7 +15,7 @@ const router = Router();
  *     description: Adds a post to the user's bookmarks. If it is already bookmarked, it removes it.
  *     tags: [Bookmarks]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -64,7 +64,7 @@ router.post("/:id", authenticateToken, toggleBookmark);
  *     description: Retrieves all posts bookmarked by the authenticated user, ordered by most recently saved.
  *     tags: [Bookmarks]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: A list of bookmarked posts

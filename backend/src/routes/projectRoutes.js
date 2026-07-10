@@ -83,7 +83,7 @@ router.get("/:id", getProjectById);
  *     description: Creates a new collaboration project. Skills are normalised to uppercase and created if they do not already exist. Requires a valid JWT token.
  *     tags: [Projects]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -150,7 +150,7 @@ router.post("/", authenticateToken, createProject);
  *       Requires a valid JWT token.
  *     tags: [Projects]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -224,7 +224,7 @@ router.put("/:id", authenticateToken, updateProject);
  *       Requires a valid JWT token.
  *     tags: [Projects]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -288,7 +288,7 @@ router.post("/:id/apply", authenticateToken, applyToProject);
  *       applicant's username, name, and email. Requires a valid JWT token.
  *     tags: [Projects]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -338,7 +338,7 @@ router.get("/:id/applications", authenticateToken, getProjectApplications);
  *       notification is sent to the applicant. Requires a valid JWT token.
  *     tags: [Projects]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: appId

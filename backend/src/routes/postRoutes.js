@@ -25,7 +25,7 @@ const router = Router();
  *     description: Creates a new post under a specified topic. Requires a valid JWT token in the Authorization header.
  *     tags: [Posts]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -96,7 +96,7 @@ router.get("/", getAllPosts);
  *       also returns the authenticated user's current vote status on the post.
  *     tags: [Posts]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *       - {}
  *     parameters:
  *       - in: path
@@ -149,7 +149,7 @@ router.get("/:id", optionalAuth, getPostById);
  *     description: Deletes a specific post if the authenticated user is the author. Requires a valid JWT token.
  *     tags: [Posts]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -199,7 +199,7 @@ router.delete("/:id", authenticateToken, deletePost);
  *       switch their vote, it updates their choice. Requires a valid JWT token.
  *     tags: [Posts]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -301,7 +301,7 @@ router.get("/:id/comments", getPostComments);
  *     description: Creates a new top-level comment, or a nested reply if a valid `parentId` is provided. Requires a valid JWT token.
  *     tags: [Posts]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id

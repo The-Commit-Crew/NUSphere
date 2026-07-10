@@ -8,6 +8,7 @@ import {
   jest,
 } from "@jest/globals";
 import request from "supertest";
+import { loginAndGetCookies } from "./testUtils.js";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
 import notificationEmitter from "../../utils/notificationEmitter.js";
@@ -17,7 +18,9 @@ jest.spyOn(notificationEmitter, "emit").mockImplementation(() => {});
 const timestamp = Date.now();
 
 let validCookies = [];
+let validCsrfToken;
 let voterCookies = [];
+let voterCsrfToken;
 let testUserId;
 let testTopicId;
 let testPostId;
@@ -48,11 +51,9 @@ beforeAll(async () => {
   });
   testUserId = user.id;
 
-  const loginRes = await request(app)
-    .post("/api/auth/login")
-    .send({ email: testUser.email, password: testUser.password });
-
-  validCookies = loginRes.headers["set-cookie"] || [];
+  const authData_validCookies = await loginAndGetCookies(testUser.email, testUser.password);
+  validCookies = authData_validCookies.cookies;
+  validCsrfToken = authData_validCookies.csrfToken;
 
   const topic = await prisma.topic.create({
     data: {
@@ -74,11 +75,9 @@ beforeAll(async () => {
   });
   voterUserId = voterUser.id;
 
-  const voterLogin = await request(app)
-    .post("/api/auth/login")
-    .send({ email: voterUser.email, password: testUser.password });
-
-  voterCookies = voterLogin.headers["set-cookie"] || [];
+  const authData_voterCookies = await loginAndGetCookies(voterUser.email, testUser.password);
+  voterCookies = authData_voterCookies.cookies;
+  voterCsrfToken = authData_voterCookies.csrfToken;
 }, 30000);
 
 afterAll(async () => {
@@ -102,20 +101,20 @@ afterEach(() => {
 });
 
 describe("POST /api/posts", () => {
-  it("should return 401 without token", async () => {
+  it("should return 403 without csrf token", async () => {
     const res = await request(app).post("/api/posts").send({
       title: "Test Post",
       content: "Testing without auth token.",
       topicId: testTopicId,
     });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("should return 400 with missing fields", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Cookie", validCookies)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         content: "This content is long enough but missing fields.",
       });
@@ -126,7 +125,7 @@ describe("POST /api/posts", () => {
   it("should return 400 with content under 10 characters", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Cookie", validCookies)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         title: "Valid Title",
         content: "Short",
@@ -139,7 +138,7 @@ describe("POST /api/posts", () => {
   it("should return 400 with title under 3 characters", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Cookie", validCookies)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         title: "Hi",
         content: "This is valid content for the test.",
@@ -152,7 +151,7 @@ describe("POST /api/posts", () => {
   it("should return 400 with non-existent topicId", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Cookie", validCookies)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         title: "Valid Title",
         content: "This is valid content for the test.",
@@ -165,7 +164,7 @@ describe("POST /api/posts", () => {
   it("should return 201 with valid token and valid body", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Cookie", validCookies)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         title: "Valid Post Title",
         content: "This is valid content for our integration test.",
@@ -182,7 +181,7 @@ describe("POST /api/posts", () => {
   it("should return 201 when creating an anonymous post", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Cookie", validCookies)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         title: "Anonymous Post",
         content: "This is a secret post.",
@@ -222,24 +221,24 @@ describe("GET /api/posts/:id", () => {
   it("should return correct userVoteStatus for authenticated user", async () => {
     let res = await request(app)
       .get(`/api/posts/${testPostId}`)
-      .set("Cookie", validCookies);
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
 
     expect(res.status).toBe(200);
     expect(res.body.userVoteStatus).toBeNull();
 
     await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Cookie", validCookies)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({ voteType: "UP" });
     res = await request(app)
       .get(`/api/posts/${testPostId}`)
-      .set("Cookie", validCookies);
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
 
     expect(res.status).toBe(200);
     expect(res.body.userVoteStatus).toBe("UP");
     await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Cookie", validCookies)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({ voteType: "UP" });
   });
 
@@ -251,18 +250,18 @@ describe("GET /api/posts/:id", () => {
 });
 
 describe("POST /api/posts/:id/vote", () => {
-  it("should return 401 without token", async () => {
+  it("should return 403 without csrf token", async () => {
     const res = await request(app).post(`/api/posts/${testPostId}/vote`).send({
       voteType: "UP",
     });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("should return 400 with invalid voteType", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Cookie", validCookies)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         voteType: "UPVOTE",
       });
@@ -273,7 +272,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 400 for non-existent post", async () => {
     const res = await request(app)
       .post("/api/posts/99999/vote")
-      .set("Cookie", validCookies)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         voteType: "UP",
       });
@@ -284,7 +283,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 200 and increment upvote on New Vote (Scenario A)", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Cookie", voterCookies)
+      .set("Cookie", voterCookies).set("x-csrf-token", voterCsrfToken)
       .send({
         voteType: "UP",
       });
@@ -308,7 +307,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 200 and adjust counts on Switch Vote (Scenario C)", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Cookie", voterCookies)
+      .set("Cookie", voterCookies).set("x-csrf-token", voterCsrfToken)
       .send({
         voteType: "DOWN",
       });
@@ -322,7 +321,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 200 and decrement counts on Toggle Off (Scenario B)", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Cookie", voterCookies)
+      .set("Cookie", voterCookies).set("x-csrf-token", voterCsrfToken)
       .send({
         voteType: "DOWN",
       });
@@ -336,7 +335,7 @@ describe("POST /api/posts/:id/vote", () => {
 
 describe("GET /api/posts", () => {
   it("should return 200 and a list of posts ordered by newest first", async () => {
-    await request(app).post("/api/posts").set("Cookie", validCookies).send({
+    await request(app).post("/api/posts").set("Cookie", validCookies).set("x-csrf-token", validCsrfToken).send({
       title: "The Newest Post",
       content: "This is a brand new post to test the sorting logic.",
       topicId: testTopicId,
@@ -424,7 +423,7 @@ describe("DELETE /api/posts/:id", () => {
   beforeAll(async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Cookie", validCookies)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         title: "Post to delete",
         content: "This post will be deleted during tests.",
@@ -433,29 +432,29 @@ describe("DELETE /api/posts/:id", () => {
     postToDeleteId = res.body.id;
   });
 
-  it("should return 401 without token", async () => {
+  it("should return 403 without csrf token", async () => {
     const res = await request(app).delete(`/api/posts/${postToDeleteId}`);
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("should return 400 for non-existent post", async () => {
     const res = await request(app)
       .delete("/api/posts/99999")
-      .set("Cookie", validCookies);
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
     expect(res.status).toBe(400);
   });
 
   it("should return 400 if user is not the author", async () => {
     const res = await request(app)
       .delete(`/api/posts/${postToDeleteId}`)
-      .set("Cookie", voterCookies);
+      .set("Cookie", voterCookies).set("x-csrf-token", voterCsrfToken);
     expect(res.status).toBe(400);
   });
 
   it("should return 200 and delete the post", async () => {
     const res = await request(app)
       .delete(`/api/posts/${postToDeleteId}`)
-      .set("Cookie", validCookies);
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Post deleted successfully");
 

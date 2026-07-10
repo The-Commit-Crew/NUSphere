@@ -1,11 +1,13 @@
 import { describe, it, beforeAll, afterAll, expect } from "@jest/globals";
 import request from "supertest";
+import { loginAndGetCookies } from "./testUtils.js";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
 
 const timestamp = Date.now();
 
 let validCookies;
+let validCsrfToken;
 let testUserId;
 let testTopicId;
 let testPostId;
@@ -34,11 +36,9 @@ beforeAll(async () => {
   });
   testUserId = user.id;
 
-  const loginRes = await request(app)
-    .post("/api/auth/login")
-    .send({ email: testUser.email, password: testUser.password });
-
-  validCookies = loginRes.headers["set-cookie"];
+  const authData_validCookies = await loginAndGetCookies(testUser.email, testUser.password);
+  validCookies = authData_validCookies.cookies;
+  validCsrfToken = authData_validCookies.csrfToken;
 
   const topic = await prisma.topic.create({
     data: {
@@ -68,15 +68,15 @@ afterAll(async () => {
 }, 30000);
 
 describe("POST /api/bookmarks/:id", () => {
-  it("should return 401 without token", async () => {
+  it("should return 403 without csrf token", async () => {
     const res = await request(app).post(`/api/bookmarks/${testPostId}`);
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("should return 400 for a non-existent post", async () => {
     const res = await request(app)
       .post("/api/bookmarks/999999")
-      .set("Cookie", validCookies);
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
     expect(res.status).toBe(400);
     expect(res.body.message).toBe("Post not found");
   });
@@ -84,7 +84,7 @@ describe("POST /api/bookmarks/:id", () => {
   it("should return 200 and bookmarkStatus: true when toggling ON", async () => {
     const res = await request(app)
       .post(`/api/bookmarks/${testPostId}`)
-      .set("Cookie", validCookies);
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
 
     expect(res.status).toBe(200);
     expect(res.body.bookmarkStatus).toBe(true);
@@ -93,7 +93,7 @@ describe("POST /api/bookmarks/:id", () => {
   it("should return 200 and bookmarkStatus: false when toggling OFF", async () => {
     const res = await request(app)
       .post(`/api/bookmarks/${testPostId}`)
-      .set("Cookie", validCookies);
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
 
     expect(res.status).toBe(200);
     expect(res.body.bookmarkStatus).toBe(false);
@@ -104,7 +104,7 @@ describe("GET /api/bookmarks", () => {
   beforeAll(async () => {
     await request(app)
       .post(`/api/bookmarks/${testPostId}`)
-      .set("Cookie", validCookies);
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
   });
 
   it("should return 401 without token", async () => {
@@ -115,7 +115,7 @@ describe("GET /api/bookmarks", () => {
   it("should return 200 and a list of bookmarked posts", async () => {
     const res = await request(app)
       .get("/api/bookmarks")
-      .set("Cookie", validCookies);
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);

@@ -3,13 +3,12 @@ import { updateProfileSchema } from "../validators/userValidator.js";
 
 export const updateUserProfileService = async (
   userId,
-  { bio, githubLink, linkedinLink, profilePic, skills },
+  { bio, githubLink, linkedinLink, skills },
 ) => {
   const { error, value } = updateProfileSchema.validate({
     bio,
     githubLink,
     linkedinLink,
-    profilePic,
     skills,
   });
   if (error) {
@@ -22,7 +21,6 @@ export const updateUserProfileService = async (
       bio,
       githubLink,
       linkedinLink,
-      profilePic,
       ...(value.skills && {
         skills: {
           set: [],
@@ -180,4 +178,16 @@ export const getUserDashboardService = async (userId) => {
     throw new Error("User not found");
   }
   return data;
+};
+
+export const updateProfilePhotoService = async (userId, imageUrl) => {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { profilePic: imageUrl },
+    select: { profilePic: true },
+  });
+  if (!user) {
+    throw new Error("User not found");
+  }
+  return user;
 };

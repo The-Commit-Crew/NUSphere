@@ -15,7 +15,7 @@ const router = Router();
  *     description: Fetches a list of notifications for the authenticated user, ordered from newest to oldest.
  *     tags: [Notifications]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Successfully retrieved the list of notifications.
@@ -42,7 +42,7 @@ router.get("/", authenticateToken, getUserNotifications);
  *     description: Updates the isRead status of a specific notification belonging to the authenticated user to true.
  *     tags: [Notifications]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id

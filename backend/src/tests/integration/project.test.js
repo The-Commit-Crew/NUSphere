@@ -8,6 +8,7 @@ import {
   jest,
 } from "@jest/globals";
 import request from "supertest";
+import { loginAndGetCookies } from "./testUtils.js";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
 import notificationEmitter from "../../utils/notificationEmitter.js";
@@ -17,7 +18,9 @@ jest.spyOn(notificationEmitter, "emit").mockImplementation(() => {});
 const timestamp = Date.now();
 
 let authorCookies = [];
+let authorCsrfToken;
 let applicantCookies = [];
+let applicantCsrfToken;
 let authorId;
 let applicantId;
 let testProjectId;
@@ -62,15 +65,13 @@ beforeAll(async () => {
   });
   applicantId = applicant.id;
 
-  const authorLogin = await request(app)
-    .post("/api/auth/login")
-    .send({ email: testAuthor.email, password: testAuthor.password });
-  authorCookies = authorLogin.headers["set-cookie"] || [];
+  const authData_authorCookies = await loginAndGetCookies(testAuthor.email, testAuthor.password);
+  authorCookies = authData_authorCookies.cookies;
+  authorCsrfToken = authData_authorCookies.csrfToken;
 
-  const applicantLogin = await request(app)
-    .post("/api/auth/login")
-    .send({ email: testApplicant.email, password: testApplicant.password });
-  applicantCookies = applicantLogin.headers["set-cookie"] || [];
+  const authData_applicantCookies = await loginAndGetCookies(testApplicant.email, testApplicant.password);
+  applicantCookies = authData_applicantCookies.cookies;
+  applicantCsrfToken = authData_applicantCookies.csrfToken;
 
   const project = await prisma.project.create({
     data: {
@@ -107,7 +108,7 @@ afterEach(() => {
 });
 
 describe("POST /api/projects", () => {
-  it("should return 401 without token", async () => {
+  it("should return 403 without csrf token", async () => {
     const res = await request(app)
       .post("/api/projects")
       .send({
@@ -116,13 +117,13 @@ describe("POST /api/projects", () => {
         skills: ["React"],
       });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("should return 400 with missing fields", async () => {
     const res = await request(app)
       .post("/api/projects")
-      .set("Cookie", authorCookies)
+      .set("Cookie", authorCookies).set("x-csrf-token", authorCsrfToken)
       .send({
         description:
           "This content is long enough but missing title and skills.",
@@ -134,7 +135,7 @@ describe("POST /api/projects", () => {
   it("should return 400 with title under 5 characters", async () => {
     const res = await request(app)
       .post("/api/projects")
-      .set("Cookie", authorCookies)
+      .set("Cookie", authorCookies).set("x-csrf-token", authorCsrfToken)
       .send({
         title: "Bad",
         description: "This is a completely valid description.",
@@ -147,7 +148,7 @@ describe("POST /api/projects", () => {
   it("should return 201 with valid token and valid body", async () => {
     const res = await request(app)
       .post("/api/projects")
-      .set("Cookie", authorCookies)
+      .set("Cookie", authorCookies).set("x-csrf-token", authorCsrfToken)
       .send({
         title: "Valid Project Title",
         description: "This is valid content for our integration test.",
@@ -188,18 +189,18 @@ describe("GET /api/projects/:id", () => {
 });
 
 describe("PUT /api/projects/:id", () => {
-  it("should return 401 without token", async () => {
+  it("should return 403 without csrf token", async () => {
     const res = await request(app).put(`/api/projects/${testProjectId}`).send({
       title: "Updated Title",
     });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("should return 400 if a different user tries to update the project", async () => {
     const res = await request(app)
       .put(`/api/projects/${testProjectId}`)
-      .set("Cookie", applicantCookies)
+      .set("Cookie", applicantCookies).set("x-csrf-token", applicantCsrfToken)
       .send({
         title: "Hacked Project Title",
       });
@@ -210,7 +211,7 @@ describe("PUT /api/projects/:id", () => {
   it("should return 400 with invalid status update", async () => {
     const res = await request(app)
       .put(`/api/projects/${testProjectId}`)
-      .set("Cookie", authorCookies)
+      .set("Cookie", authorCookies).set("x-csrf-token", authorCsrfToken)
       .send({
         status: "INVALID_STATUS",
       });
@@ -221,7 +222,7 @@ describe("PUT /api/projects/:id", () => {
   it("should return 200 and update the project successfully", async () => {
     const res = await request(app)
       .put(`/api/projects/${testProjectId}`)
-      .set("Cookie", authorCookies)
+      .set("Cookie", authorCookies).set("x-csrf-token", authorCsrfToken)
       .send({
         title: "Updated Baseline Project Title",
         status: "IN_PROGRESS",
@@ -247,18 +248,18 @@ describe("POST /api/projects/:id/apply", () => {
     });
   });
 
-  it("should return 401 without token", async () => {
+  it("should return 403 without csrf token", async () => {
     const res = await request(app)
       .post(`/api/projects/${testProjectId}/apply`)
       .send({ message: "Hello" });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("should return 400 if author tries to apply to their own project", async () => {
     const res = await request(app)
       .post(`/api/projects/${testProjectId}/apply`)
-      .set("Cookie", authorCookies)
+      .set("Cookie", authorCookies).set("x-csrf-token", authorCsrfToken)
       .send({ message: "Applying to myself" });
 
     expect(res.status).toBe(400);
@@ -268,7 +269,7 @@ describe("POST /api/projects/:id/apply", () => {
   it("should return 400 if message exceeds 500 characters", async () => {
     const res = await request(app)
       .post(`/api/projects/${testProjectId}/apply`)
-      .set("Cookie", applicantCookies)
+      .set("Cookie", applicantCookies).set("x-csrf-token", applicantCsrfToken)
       .send({ message: "a".repeat(501) });
 
     expect(res.status).toBe(400);
@@ -277,7 +278,7 @@ describe("POST /api/projects/:id/apply", () => {
   it("should return 201 on successful application", async () => {
     const res = await request(app)
       .post(`/api/projects/${testProjectId}/apply`)
-      .set("Cookie", applicantCookies)
+      .set("Cookie", applicantCookies).set("x-csrf-token", applicantCsrfToken)
       .send({ message: "I would be a great fit for this project!" });
 
     expect(res.status).toBe(201);
@@ -309,7 +310,7 @@ describe("GET /api/projects/:id/applications", () => {
   it("should return 400 if requested by a non-author (applicant)", async () => {
     const res = await request(app)
       .get(`/api/projects/${testProjectId}/applications`)
-      .set("Cookie", applicantCookies);
+      .set("Cookie", applicantCookies).set("x-csrf-token", applicantCsrfToken);
 
     expect(res.status).toBe(400);
   });
@@ -317,7 +318,7 @@ describe("GET /api/projects/:id/applications", () => {
   it("should return 200 and a list of applications for the author", async () => {
     const res = await request(app)
       .get(`/api/projects/${testProjectId}/applications`)
-      .set("Cookie", authorCookies);
+      .set("Cookie", authorCookies).set("x-csrf-token", authorCsrfToken);
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
@@ -331,18 +332,18 @@ describe("GET /api/projects/:id/applications", () => {
 });
 
 describe("PUT /api/projects/applications/:appId", () => {
-  it("should return 401 without token", async () => {
+  it("should return 403 without csrf token", async () => {
     const res = await request(app)
       .put(`/api/projects/applications/${testAppId}`)
       .send({ status: "ACCEPTED" });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("should return 400 with invalid status", async () => {
     const res = await request(app)
       .put(`/api/projects/applications/${testAppId}`)
-      .set("Cookie", authorCookies)
+      .set("Cookie", authorCookies).set("x-csrf-token", authorCsrfToken)
       .send({ status: "MAYBE" });
 
     expect(res.status).toBe(400);
@@ -351,7 +352,7 @@ describe("PUT /api/projects/applications/:appId", () => {
   it("should return 400 if applicant tries to accept their own application", async () => {
     const res = await request(app)
       .put(`/api/projects/applications/${testAppId}`)
-      .set("Cookie", applicantCookies)
+      .set("Cookie", applicantCookies).set("x-csrf-token", applicantCsrfToken)
       .send({ status: "ACCEPTED" });
 
     expect(res.status).toBe(400);
@@ -360,7 +361,7 @@ describe("PUT /api/projects/applications/:appId", () => {
   it("should return 200 and update status when author accepts", async () => {
     const res = await request(app)
       .put(`/api/projects/applications/${testAppId}`)
-      .set("Cookie", authorCookies)
+      .set("Cookie", authorCookies).set("x-csrf-token", authorCsrfToken)
       .send({ status: "ACCEPTED" });
 
     expect(res.status).toBe(200);

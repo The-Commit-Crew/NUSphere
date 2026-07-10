@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - DELETE post endpoint
 - Bookmarks/Save
 - Anonymous posting/commenting
+- Profile photo upload feature using Cloudinary
+- DELETE endpoint for removing profile photos
+- Signed Double Submit Cookie CSRF protection
 
 ### Fixed
 
