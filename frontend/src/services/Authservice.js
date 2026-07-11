@@ -101,9 +101,16 @@ export async function getTopicById(topicId) {
 }
 
 //Posts
+export async function getAllPosts(params = {}) {
+  const query = new URLSearchParams()
+  if (params.q) query.set('q', params.q)
+  if (params.sort) query.set('sort', params.sort)
+  if (params.topicId != null) query.set('topicId', params.topicId)
+  if (params.page) query.set('page', params.page)
+  if (params.limit) query.set('limit', params.limit)
 
-export async function getAllPosts() {
-  return apiFetch('/posts')
+  const queryString = query.toString()
+  return apiFetch(`/posts${queryString ? `?${queryString}` : ''}`)
 }
 
 export async function getPostById(postId) {

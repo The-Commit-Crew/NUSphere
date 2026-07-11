@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
+import { SearchProvider } from './context/SearchContext'
 import Homepage from './pages/Homepage'
 import Loginpage from './pages/Loginpage'
 import Registerpage from './pages/Registerpage'
@@ -15,6 +16,7 @@ import Profilepage from './pages/Profilepage'
 import Editprofilepage from './pages/Editprofilepage'
 function App() {
   return (
+    <SearchProvider>
     <div style={{ backgroundColor: '#F5F0EB' }} className="min-h-screen">
       <Navbar />
       <Routes>
@@ -33,6 +35,7 @@ function App() {
         <Route path="/u/:username" element={<Profilepage />} />
       </Routes>
     </div>
+     </SearchProvider>
   )
 }
 
