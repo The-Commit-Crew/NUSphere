@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { getTopicById, getAllPosts, castVote, deletePost } from '../services/Authservice'
+import { getAllPosts, castVote, deletePost } from '../services/Authservice'
 import DeleteConfirmDialog from './DeleteConfirmDialog'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-function Postlist({ selectedTopicId }) {
+function Postlist({ selectedTopicId, searchQuery , sortBy }) {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -12,27 +12,27 @@ function Postlist({ selectedTopicId }) {
   const navigate = useNavigate()
   const { token, user } = useAuth()
 
-    useEffect(() => {
-      async function fetchPosts() {
-        setLoading(true)
-        setError('')
-        try {
-          if (selectedTopicId === null) {
-            const allPosts = await getAllPosts()
-            setPosts(allPosts)
-          } else {
-            const topic = await getTopicById(selectedTopicId)
-            setPosts(topic.posts)
-          }
-        } catch (err) {
-          setError('Failed to load posts')
-          console.error(err)
-        } finally {
-          setLoading(false)
-        }
+  useEffect(() => {
+    async function fetchPosts() {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await getAllPosts({
+          q: searchQuery || undefined,
+          sort: sortBy,
+          topicId: selectedTopicId ?? undefined,
+        })
+        setPosts(data)
+      } catch (err) {
+        setError('Failed to load posts')
+        console.error(err)
+      } finally {
+        setLoading(false)
       }
-      fetchPosts()
-    }, [selectedTopicId])
+    }
+    fetchPosts()
+  }, [selectedTopicId, searchQuery, sortBy])
+
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
   async function handleDeletePost() {
     try {
@@ -111,9 +111,6 @@ function Postlist({ selectedTopicId }) {
       <div className="flex items-center justify-between mb-1">
         <span style={{ color: '#1A1512' }} className="text-sm font-medium">
           {posts.length} questions
-        </span>
-        <span style={{ color: '#9A8880' }} className="text-sm">
-          Sort: Recent
         </span>
       </div>
 
