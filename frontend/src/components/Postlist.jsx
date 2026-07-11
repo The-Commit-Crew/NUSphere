@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { getTopicById, getAllPosts, castVote } from '../services/Authservice'
+import { getTopicById, getAllPosts, castVote, deletePost } from '../services/Authservice'
+import DeleteConfirmDialog from './DeleteConfirmDialog'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -9,7 +10,7 @@ function Postlist({ selectedTopicId }) {
   const [error, setError] = useState('')
   const [voteMessage, setVoteMessage] = useState('')
   const navigate = useNavigate()
-  const { token } = useAuth()
+  const { token, user } = useAuth()
 
     useEffect(() => {
       async function fetchPosts() {
@@ -32,30 +33,43 @@ function Postlist({ selectedTopicId }) {
       }
       fetchPosts()
     }, [selectedTopicId])
-
-  async function handleVote(e, postId, voteType) {
-    e.stopPropagation()
-    if (!token) {
-      setVoteMessage('Please log in to vote')
-      setTimeout(() => setVoteMessage(''), 3000)
-      return
-    }
+  const [pendingDeleteId, setPendingDeleteId] = useState(null)
+  async function handleDeletePost() {
     try {
-      const result = await castVote(postId, voteType, token)
-      setPosts(prev => prev.map(post =>
-        post.id === postId
-          ? {
-              ...post,
-              upvoteCount: result.upvoteCount,
-              downvoteCount: result.downvoteCount,
-            }
-          : post
-      ))
-      setVoteMessage('')
+      await deletePost(pendingDeleteId)
+      setPosts(prev => prev.filter(post => post.id !== pendingDeleteId))
     } catch (err) {
       console.error(err)
+      setVoteMessage(err.message) // reusing the existing message slot for simplicity
+      setTimeout(() => setVoteMessage(''), 3000)
+    } finally {
+      setPendingDeleteId(null)
     }
   }
+  async function handleVote(e, postId, voteType) {
+  e.stopPropagation()
+  if (!token) {
+    setVoteMessage('Please log in to vote')
+    setTimeout(() => setVoteMessage(''), 3000)
+    return
+  }
+  try {
+    const result = await castVote(postId, voteType, token)
+    setPosts(prev => prev.map(post =>
+      post.id === postId
+        ? {
+            ...post,
+            upvoteCount: result.upvoteCount,
+            downvoteCount: result.downvoteCount,
+            userVoteStatus: post.userVoteStatus === voteType ? null : voteType,
+          }
+        : post
+    ))
+    setVoteMessage('')
+  } catch (err) {
+    console.error(err)
+  }
+}
 
   function timeAgo(dateString) {
     const now = new Date()
@@ -145,19 +159,27 @@ function Postlist({ selectedTopicId }) {
           {/* Action row */}
           <div className="flex items-center gap-2" style={{ borderTop: '1px solid #F5F0EB', paddingTop: '10px' }}>
             <button
-              onClick={(e) => handleVote(e, post.id, 'UP')}
-              style={{ backgroundColor: '#F5F0EB', color: '#9A8880' }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium hover:opacity-70"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 19V5M5 12l7-7 7 7" />
-              </svg>
-              {post.upvoteCount}
+            onClick={(e) => handleVote(e, post.id, 'UP')}
+            style={{
+              backgroundColor: post.userVoteStatus === 'UP' ? '#FDF6F3' : '#F5F0EB',
+              color: post.userVoteStatus === 'UP' ? '#C4552A' : '#9A8880',
+              border: post.userVoteStatus === 'UP' ? '1px solid #C4552A' : '1px solid transparent',
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium hover:opacity-70"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
+            {post.upvoteCount}
             </button>
 
             <button
               onClick={(e) => handleVote(e, post.id, 'DOWN')}
-              style={{ backgroundColor: '#F5F0EB', color: '#9A8880' }}
+              style={{
+                backgroundColor: post.userVoteStatus === 'DOWN' ? '#FDF6F3' : '#F5F0EB',
+                color: post.userVoteStatus === 'DOWN' ? '#C4552A' : '#9A8880',
+                border: post.userVoteStatus === 'DOWN' ? '1px solid #C4552A' : '1px solid transparent',
+              }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium hover:opacity-70"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -178,9 +200,28 @@ function Postlist({ selectedTopicId }) {
               </svg>
               {post.commentCount ?? post._count?.comments ?? 0}
             </span>
+            {user && user.id === post.authorId && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setPendingDeleteId(post.id) }}
+              style={{ backgroundColor: '#F5F0EB', color: '#C4552A', marginLeft: 'auto' }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium hover:opacity-70"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+              Delete
+            </button>
+          )}
           </div>
         </div>
       ))}
+          <DeleteConfirmDialog
+      open={pendingDeleteId !== null}
+      message="Delete this post? This can't be undone."
+      onCancel={() => setPendingDeleteId(null)}
+      onConfirm={handleDeletePost}
+    />
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog'
 import { renderWithMentions } from '../utils/mentionUtils'
@@ -10,6 +10,7 @@ import {
   createComment,
   updateComment,
   deleteComment,
+  deletePost,
 } from '../services/Authservice'
 
 function CommentBlock({
@@ -195,7 +196,21 @@ function Postdetailpage() {
 
   const { id } = useParams()
   const { token, user } = useAuth()
+  const navigate = useNavigate()
+  const [pendingPostDelete, setPendingPostDelete] = useState(false)
+  const [postError, setPostError] = useState('')
 
+  async function handleDeletePost() {
+    try {
+      await deletePost(id)
+      navigate('/')
+    } catch (err) {
+      setPostError(err.message)
+    } finally {
+      setPendingPostDelete(false)
+    }
+  }
+  
   useEffect(() => {
     async function fetchData() {
       setLoading(true)
@@ -237,6 +252,7 @@ function Postdetailpage() {
       console.error(err)
     }
   }
+  
 
   async function handleCreateComment() {
     if (!token) {
@@ -362,17 +378,37 @@ function Postdetailpage() {
           {post.content}
         </p>
 
-        <div className="flex items-center gap-3 flex-wrap mb-6">
-          <span
-            style={{ backgroundColor: '#F5F0EB', color: '#9A8880' }}
-            className="px-3 py-1 rounded-full text-sm font-medium"
-          >
-            {post.topic?.name}
-          </span>
-          <span style={{ color: '#9A8880' }} className="text-sm">
-            u/{post.author?.username}
-          </span>
-        </div>
+              <div className="flex items-center gap-3 flex-wrap mb-6">
+        <span
+          style={{ backgroundColor: '#F5F0EB', color: '#9A8880' }}
+          className="px-3 py-1 rounded-full text-sm font-medium"
+        >
+          {post.topic?.name}
+        </span>
+        <span style={{ color: '#9A8880' }} className="text-sm">
+          u/{post.author?.username}
+        </span>
+
+        {user && user.id === post.authorId && (
+        <button
+          onClick={() => setPendingPostDelete(true)}
+          style={{ backgroundColor: '#F5F0EB', color: '#C4552A', marginLeft: 'auto' }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium hover:opacity-70"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          </svg>
+          Delete Post
+        </button>
+      )}
+      </div>
+
+      {postError && (
+        <p style={{ color: '#C4552A' }} className="text-sm mb-4">
+          {postError}
+        </p>
+)}
 
         <div className="flex items-center gap-4">
           <button
@@ -412,7 +448,12 @@ function Postdetailpage() {
           )}
         </div>
       </div>
-
+       <DeleteConfirmDialog
+        open={pendingPostDelete}
+        message="Delete this post? This can't be undone."
+        onCancel={() => setPendingPostDelete(false)}
+        onConfirm={handleDeletePost}
+      />
       <div
         style={{
           backgroundColor: '#FFFFFF',
@@ -435,6 +476,7 @@ function Postdetailpage() {
             No comments yet. Be the first to comment!
           </p>
         )}
+        
 
         {comments.map(comment => (
           <CommentBlock

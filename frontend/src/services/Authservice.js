@@ -117,6 +117,9 @@ export async function createPost(data) {
     body: JSON.stringify(data),
   })
 }
+export async function deletePost(postId) {
+  return apiFetch(`/posts/${postId}`, { method: 'DELETE' })
+}
 
 //Voting
 export async function castVote(postId, voteType) {
