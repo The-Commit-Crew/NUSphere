@@ -11,6 +11,7 @@ import {
   updateComment,
   deleteComment,
   deletePost,
+  toggleBookmark,
 } from '../services/Authservice'
 
 function CommentBlock({
@@ -20,9 +21,13 @@ function CommentBlock({
   editingId,
   editContent,
   setEditContent,
+  editAnonymous,
+  setEditAnonymous,
   replyingTo,
   replyContent,
   setReplyContent,
+  replyAnonymous,
+  setReplyAnonymous,
   setEditingId,
   setReplyingTo,
   handleEdit,
@@ -60,6 +65,7 @@ function CommentBlock({
                 onClick={() => {
                   setEditingId(comment.id)
                   setEditContent(comment.content)
+                  setEditAnonymous(comment.isAnonymous ?? false)
                 }}
                 style={{ color: '#9A8880' }}
                 className="text-xs hover:underline"
@@ -90,7 +96,17 @@ function CommentBlock({
               className="w-full rounded-lg p-3 text-sm resize-none"
               rows={3}
             />
-            <div className="flex gap-2">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: '#9A8880' }}>
+                <input
+                  type="checkbox"
+                  checked={editAnonymous}
+                  onChange={e => setEditAnonymous(e.target.checked)}
+                  style={{ accentColor: '#C4552A' }}
+                  className="w-3.5 h-3.5"
+                />
+                Anonymous
+              </label>
               <button
                 onClick={() => handleEdit(comment.id)}
                 style={{ backgroundColor: '#C4552A', color: '#FFFFFF' }}
@@ -118,6 +134,7 @@ function CommentBlock({
             onClick={() => {
               setReplyingTo(isReplying ? null : comment.id)
               setReplyContent('')
+              setReplyAnonymous(false)
             }}
             style={{ color: '#9A8880' }}
             className="text-xs mt-2 hover:underline"
@@ -141,13 +158,25 @@ function CommentBlock({
             className="w-full rounded-lg p-3 text-sm resize-none"
             rows={2}
           />
-          <button
-            onClick={() => handleReply(comment.id)}
-            style={{ backgroundColor: '#C4552A', color: '#FFFFFF' }}
-            className="self-start px-3 py-1 rounded-full text-xs font-medium"
-          >
-            Post Reply
-          </button>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: '#9A8880' }}>
+              <input
+                type="checkbox"
+                checked={replyAnonymous}
+                onChange={e => setReplyAnonymous(e.target.checked)}
+                style={{ accentColor: '#C4552A' }}
+                className="w-3.5 h-3.5"
+              />
+              Reply anonymously
+            </label>
+            <button
+              onClick={() => handleReply(comment.id)}
+              style={{ backgroundColor: '#C4552A', color: '#FFFFFF' }}
+              className="px-3 py-1 rounded-full text-xs font-medium"
+            >
+              Post Reply
+            </button>
+          </div>
         </div>
       )}
 
@@ -160,9 +189,13 @@ function CommentBlock({
           editingId={editingId}
           editContent={editContent}
           setEditContent={setEditContent}
+          editAnonymous={editAnonymous}
+          setEditAnonymous={setEditAnonymous}
           replyingTo={replyingTo}
           replyContent={replyContent}
           setReplyContent={setReplyContent}
+          replyAnonymous={replyAnonymous}
+          setReplyAnonymous={setReplyAnonymous}
           setEditingId={setEditingId}
           setReplyingTo={setReplyingTo}
           handleEdit={handleEdit}
@@ -185,12 +218,17 @@ function Postdetailpage() {
   const [userVoteStatus, setUserVoteStatus] = useState(null)
   const [voteMessage, setVoteMessage] = useState('')
 
+  const [isBookmarked, setIsBookmarked] = useState(post?.bookmarkStatus ?? false);
+
   const [comments, setComments] = useState([])
   const [newComment, setNewComment] = useState('')
+  const [newCommentAnonymous, setNewCommentAnonymous] = useState(false)
   const [replyingTo, setReplyingTo] = useState(null)
   const [replyContent, setReplyContent] = useState('')
+  const [replyAnonymous, setReplyAnonymous] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editContent, setEditContent] = useState('')
+  const [editAnonymous, setEditAnonymous] = useState(false)
   const [commentError, setCommentError] = useState('')
   const [pendingDelete, setPendingDelete] = useState(null)
 
@@ -210,7 +248,7 @@ function Postdetailpage() {
       setPendingPostDelete(false)
     }
   }
-  
+
   useEffect(() => {
     async function fetchData() {
       setLoading(true)
@@ -224,6 +262,7 @@ function Postdetailpage() {
         setUpvoteCount(postData.upvoteCount)
         setDownvoteCount(postData.downvoteCount)
         setUserVoteStatus(postData.userVoteStatus)
+        setIsBookmarked(postData.bookmarkStatus ?? false)
         setComments(commentsData)
       } catch (err) {
         setError('Failed to load post')
@@ -252,7 +291,18 @@ function Postdetailpage() {
       console.error(err)
     }
   }
-  
+
+  const handleBookmarkToggle = async () => {
+    const prev = isBookmarked;
+    setIsBookmarked(!prev); // optimistic
+    try {
+      const { bookmarkStatus } = await toggleBookmark(post.id);
+      setIsBookmarked(bookmarkStatus);
+    } catch (err) {
+      setIsBookmarked(prev); // revert on failure
+      console.error(err);
+    }
+  };
 
   async function handleCreateComment() {
     if (!token) {
@@ -261,11 +311,14 @@ function Postdetailpage() {
     }
     if (!newComment.trim()) return
     try {
-      const created = await createComment(id, { content: newComment }, token)
+      const created = await createComment(id, { content: newComment, isAnonymous: newCommentAnonymous }, token)
       created.replies = []
-      created.author = { username: user.username }
+      created.author = newCommentAnonymous
+        ? { username: 'Anonymous' }
+        : { username: user.username }
       setComments(prev => [...prev, created])
       setNewComment('')
+      setNewCommentAnonymous(false)
       setCommentError('')
     } catch (err) {
       setCommentError(err.message)
@@ -279,9 +332,11 @@ function Postdetailpage() {
     }
     if (!replyContent.trim()) return
     try {
-      const created = await createComment(id, { content: replyContent, parentId }, token)
+      const created = await createComment(id, { content: replyContent, parentId, isAnonymous: replyAnonymous }, token)
       created.replies = []
-      created.author = { username: user.username }
+      created.author = replyAnonymous
+        ? { username: 'Anonymous' }
+        : { username: user.username }
       setComments(prev => prev.map(comment =>
         comment.id === parentId
           ? { ...comment, replies: [...comment.replies, created] }
@@ -289,6 +344,7 @@ function Postdetailpage() {
       ))
       setReplyingTo(null)
       setReplyContent('')
+      setReplyAnonymous(false)
       setCommentError('')
     } catch (err) {
       setCommentError(err.message)
@@ -298,20 +354,24 @@ function Postdetailpage() {
   async function handleEdit(commentId) {
     if (!editContent.trim()) return
     try {
-      await updateComment(commentId, { content: editContent }, token)
+      await updateComment(commentId, { content: editContent, isAnonymous: editAnonymous }, token)
+      const newAuthor = editAnonymous ? { username: 'Anonymous' } : { username: user.username }
       setComments(prev => prev.map(comment => {
         if (comment.id === commentId) {
-          return { ...comment, content: editContent }
+          return { ...comment, content: editContent, isAnonymous: editAnonymous, author: newAuthor }
         }
         return {
           ...comment,
           replies: comment.replies.map(reply =>
-            reply.id === commentId ? { ...reply, content: editContent } : reply
+            reply.id === commentId
+              ? { ...reply, content: editContent, isAnonymous: editAnonymous, author: newAuthor }
+              : reply
           )
         }
       }))
       setEditingId(null)
       setEditContent('')
+      setEditAnonymous(false)
     } catch (err) {
       setCommentError(err.message)
     }
@@ -388,6 +448,23 @@ function Postdetailpage() {
         <span style={{ color: '#9A8880' }} className="text-sm">
           u/{post.author?.username}
         </span>
+
+              <button
+          onClick={handleBookmarkToggle}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '6px 14px', borderRadius: '9999px',
+            border: `1px solid ${isBookmarked ? '#C4552A' : '#E8E0D8'}`,
+            backgroundColor: isBookmarked ? '#C4552A' : '#F5F0EB',
+            color: isBookmarked ? '#F5F0EB' : '#9A8880',
+          }}
+          className="text-xs font-medium hover:opacity-70"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill={isBookmarked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
+          {isBookmarked ? 'Saved' : 'Save'}
+        </button>
 
         {user && user.id === post.authorId && (
         <button
@@ -476,7 +553,7 @@ function Postdetailpage() {
             No comments yet. Be the first to comment!
           </p>
         )}
-        
+
 
         {comments.map(comment => (
           <CommentBlock
@@ -489,6 +566,8 @@ function Postdetailpage() {
             replyingTo={replyingTo}
             replyContent={replyContent}
             setReplyContent={setReplyContent}
+            replyAnonymous={replyAnonymous}
+            setReplyAnonymous={setReplyAnonymous}
             setEditingId={setEditingId}
             setReplyingTo={setReplyingTo}
             handleEdit={handleEdit}
@@ -519,17 +598,30 @@ function Postdetailpage() {
             className="w-full rounded-lg p-3 text-sm resize-none"
             rows={3}
           />
-          <button
-            onClick={handleCreateComment}
-            disabled={!token}
-            style={{
-              backgroundColor: token ? '#C4552A' : '#E8E0D8',
-              color: token ? '#FFFFFF' : '#9A8880',
-            }}
-            className="self-start px-4 py-2 rounded-full text-sm font-medium"
-          >
-            Post Comment
-          </button>
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: token ? '#9A8880' : '#C4B8AE' }}>
+              <input
+                type="checkbox"
+                checked={newCommentAnonymous}
+                onChange={e => setNewCommentAnonymous(e.target.checked)}
+                disabled={!token}
+                style={{ accentColor: '#C4552A' }}
+                className="w-3.5 h-3.5"
+              />
+              Comment anonymously
+            </label>
+            <button
+              onClick={handleCreateComment}
+              disabled={!token}
+              style={{
+                backgroundColor: token ? '#C4552A' : '#E8E0D8',
+                color: token ? '#FFFFFF' : '#9A8880',
+              }}
+              className="px-4 py-2 rounded-full text-sm font-medium"
+            >
+              Post Comment
+            </button>
+          </div>
         </div>
       </div>
 
