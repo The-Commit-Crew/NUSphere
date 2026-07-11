@@ -18,6 +18,9 @@ export const createPostSchema = Joi.object({
     "number.positive": "Invalid topic selected",
     "any.required": "Please select a topic for your post",
   }),
+  isAnonymous: Joi.boolean().optional().default(false).messages({
+    "boolean.base": "Anonymity status should be a Boolean",
+  }),
 });
 
 export const voteSchema = Joi.object({
@@ -27,4 +30,39 @@ export const voteSchema = Joi.object({
     "string.empty": "Vote type cannot be empty",
     "string.base": "Vote type must be a valid text string",
   }),
+});
+
+export const getPostQuerySchema = Joi.object({
+  q: Joi.string().allow("").optional().messages({
+    "string.base": "Query must be a valid string",
+  }),
+  sort: Joi.string()
+    .valid("new", "top", "hot")
+    .optional()
+    .default("new")
+    .messages({
+      "string.base": "Sort query must be a valid string",
+      "any.only": "Sort query must be exactly 'new', 'top', or 'hot'",
+    }),
+  topicId: Joi.number().integer().positive().optional().messages({
+    "number.base": "Topic is required",
+    "number.integer": "Invalid topic selected",
+    "number.positive": "Invalid topic selected",
+  }),
+  page: Joi.number().integer().positive().default(1).optional().messages({
+    "number.base": "Page number is required",
+    "number.integer": "Invalid page number",
+    "number.positive": "Invalid page number",
+  }),
+  limit: Joi.number()
+    .integer()
+    .positive()
+    .default(10)
+    .max(50)
+    .optional()
+    .messages({
+      "number.base": "Limit is required",
+      "number.integer": "Invalid limit",
+      "number.positive": "Invalid limit",
+    }),
 });

@@ -1,294 +1,237 @@
 const BASE_URL = import.meta.env.VITE_API_URL
 
+// The CSRF token is handed to us once via GET /auth/csrf-token and stays
+// valid regardless of login state, so we cache it in memory (a plain JS
+// variable) and fetch it once per page load.
+let csrfToken = null
+let csrfTokenPromise = null
+
+async function ensureCsrfToken() {
+  if (csrfToken) return csrfToken
+  if (!csrfTokenPromise) {
+    csrfTokenPromise = fetch(`${BASE_URL}/auth/csrf-token`, {
+      credentials: 'include',
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        csrfToken = data.csrfToken
+        return csrfToken
+      })
+  }
+  return csrfTokenPromise
+}
+
+const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
+const NO_RETRY_PATHS = ['/auth/login', '/auth/register', '/auth/verify-otp', '/auth/resend-otp', '/auth/refresh']
+
+async function apiFetch(path, options = {}, isRetry = false) {
+  const method = (options.method || 'GET').toUpperCase()
+  const headers = { ...(options.headers || {}) }
+
+  if (MUTATING_METHODS.includes(method)) {
+    headers['x-csrf-token'] = await ensureCsrfToken()
+  }
+
+  const response = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    method,
+    headers,
+    credentials: 'include',
+  })
+
+  if (response.status === 401 && !isRetry && !NO_RETRY_PATHS.includes(path)) {
+    const refreshed = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'x-csrf-token': await ensureCsrfToken() },
+    })
+    if (refreshed.ok) {
+      return apiFetch(path, options, true)
+    }
+  }
+
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.message || 'Request failed')
+  return result
+}
+
 export async function registerUser(data) {
-  const response = await fetch(`${BASE_URL}/auth/register`, {
+  return apiFetch('/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Registration failed')
-  return result
 }
 
 export async function loginUser(data) {
-  const response = await fetch(`${BASE_URL}/auth/login`, {
+  return apiFetch('/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Login failed')
-  return result
 }
 
 export async function verifyOtp(data) {
-  const response = await fetch(`${BASE_URL}/auth/verify-otp`, {
+  return apiFetch('/auth/verify-otp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'OTP verification failed')
-  return result
 }
 
 export async function resendOtp(data) {
-  const response = await fetch(`${BASE_URL}/auth/resend-otp`, {
+  return apiFetch('/auth/resend-otp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Resend OTP failed')
-  return result
+}
+
+export async function logoutUser() {
+  return apiFetch('/auth/logout', { method: 'POST' })
 }
 
 //Topics
 export async function getAllTopics() {
-  const response = await fetch(`${BASE_URL}/topics`)
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to fetch topics')
-  return result
+  return apiFetch('/topics')
 }
 
 export async function getTopicById(topicId) {
-  const response = await fetch(`${BASE_URL}/topics/${topicId}`)
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to fetch topic')
-  return result
+  return apiFetch(`/topics/${topicId}`)
 }
 
-//Posts 
+//Posts
 
 export async function getAllPosts() {
-  const response = await fetch(`${BASE_URL}/posts`)
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to fetch posts')
-  return result
+  return apiFetch('/posts')
 }
 
-export async function getPostById(postId, token) {
-  const headers = {}
-  if (token) {
-  headers.Authorization = `Bearer ${token}`
-}
-  const response = await fetch(`${BASE_URL}/posts/${postId}`,{
-    headers,
-  })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to fetch post')
-  return result
+export async function getPostById(postId) {
+  return apiFetch(`/posts/${postId}`)
 }
 
-export async function createPost(data, token) {
-  const response = await fetch(`${BASE_URL}/posts`, {
+export async function createPost(data) {
+  return apiFetch('/posts', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to create post')
-  return result
 }
-//Voting 
-export async function castVote(postId, voteType, token) {
-    const response = await fetch(`${BASE_URL}/posts/${postId}/vote`, {
+
+//Voting
+export async function castVote(postId, voteType) {
+  return apiFetch(`/posts/${postId}/vote`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ voteType }),
   })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to vote')
-  return result
 }
+
 //Comments
 
 export async function getPostComments(postId) {
-  const response = await fetch(`${BASE_URL}/posts/${postId}/comments`)
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to fetch comments')
-  return result
+  return apiFetch(`/posts/${postId}/comments`)
 }
 
-export async function createComment(postId, data, token) {
-  const response = await fetch(`${BASE_URL}/posts/${postId}/comments`, {
+export async function createComment(postId, data) {
+  return apiFetch(`/posts/${postId}/comments`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to create comment')
-  return result
 }
 
-export async function updateComment(commentId, data, token) {
-  const response = await fetch(`${BASE_URL}/comments/${commentId}`, {
+export async function updateComment(commentId, data) {
+  return apiFetch(`/comments/${commentId}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to update comment')
-  return result
 }
 
-export async function deleteComment(commentId, token) {
-  const response = await fetch(`${BASE_URL}/comments/${commentId}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to delete comment')
-  return result
+export async function deleteComment(commentId) {
+  return apiFetch(`/comments/${commentId}`, { method: 'DELETE' })
 }
+
 //Projects
 
 export async function getAllProjects() {
-  const response = await fetch(`${BASE_URL}/projects`)
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to fetch projects')
-  return result
+  return apiFetch('/projects')
 }
 
 export async function getProjectById(projectId) {
-  const response = await fetch(`${BASE_URL}/projects/${projectId}`)
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to fetch project')
-  return result
+  return apiFetch(`/projects/${projectId}`)
 }
 
-export async function createProject(data, token) {
-  const response = await fetch(`${BASE_URL}/projects`, {
+export async function createProject(data) {
+  return apiFetch('/projects', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to create project')
-  return result
 }
 
-export async function updateProject(projectId, data, token) {
-  const response = await fetch(`${BASE_URL}/projects/${projectId}`, {
+export async function updateProject(projectId, data) {
+  return apiFetch(`/projects/${projectId}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to update project')
-  return result
 }
 
-export async function applyToProject(projectId, data, token) {
-  const response = await fetch(`${BASE_URL}/projects/${projectId}/apply`, {
+export async function applyToProject(projectId, data) {
+  return apiFetch(`/projects/${projectId}/apply`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to apply to project')
-  return result
 }
 
-export async function getProjectApplications(projectId, token) {
-  const response = await fetch(`${BASE_URL}/projects/${projectId}/applications`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to fetch applications')
-  return result
+export async function getProjectApplications(projectId) {
+  return apiFetch(`/projects/${projectId}/applications`)
 }
 
-export async function updateApplicationStatus(appId, data, token) {
-  const response = await fetch(`${BASE_URL}/projects/applications/${appId}`, {
+export async function updateApplicationStatus(appId, data) {
+  return apiFetch(`/projects/applications/${appId}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to update application status')
-  return result
 }
 
 //User Profile
 
-export async function getUserProfile(username, token) {
-  const headers = {}
-  if (token) {
-    headers.Authorization = `Bearer ${token}`
-  }
-  const response = await fetch(`${BASE_URL}/users/${username}`, {
-    headers,
-  })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to fetch profile')
-  return result
+export async function getUserProfile(username) {
+  return apiFetch(`/users/${username}`)
 }
 
-export async function updateUserProfile(data, token) {
-  const response = await fetch(`${BASE_URL}/users/me`, {
+export async function updateUserProfile(data) {
+  return apiFetch('/users/me', {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to update profile')
-  return result
+}
+
+export async function uploadProfilePhoto(file) {
+  const formData = new FormData()
+  formData.append('profileImage', file)
+  return apiFetch('/users/me/photo', {
+    method: 'PATCH',
+    body: formData,
+  })
+}
+
+export async function deleteProfilePhoto() {
+  return apiFetch('/users/me/photo', { method: 'DELETE' })
 }
 
 //Notifications
 
-export async function getUserNotifications(token) {
-  const response = await fetch(`${BASE_URL}/notifications`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to fetch notifications')
-  return result
+export async function getUserNotifications() {
+  return apiFetch('/notifications')
 }
 
-export async function markNotificationAsRead(notificationId, token) {
-  const response = await fetch(`${BASE_URL}/notifications/${notificationId}/read`, {
-    method: 'PATCH',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  })
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Failed to mark notification as read')
-  return result
+export async function markNotificationAsRead(notificationId) {
+  return apiFetch(`/notifications/${notificationId}/read`, { method: 'PATCH' })
 }

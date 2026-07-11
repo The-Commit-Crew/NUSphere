@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] [3.0.0]
+
+### Added
+
+- Advanced FTS Search, Gravity Sorting, and Pagination
+- DELETE post endpoint
+- Bookmarks/Save
+- Anonymous posting/commenting
+- Profile photo upload feature using Cloudinary
+- DELETE endpoint for removing profile photos
+- Signed Double Submit Cookie CSRF protection
+
+### Fixed
+
+- Comment count while getting posts
+- JWT refresh tokens
+- Account Recovery (forgot password feature)
+- Skills Case Normalization
+
 ## [2.0.0] - 2026-06-29
 
 ### Added

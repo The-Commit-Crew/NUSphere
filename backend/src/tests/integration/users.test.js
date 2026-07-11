@@ -1,15 +1,18 @@
 import { describe, it, beforeAll, afterAll, expect } from "@jest/globals";
 import request from "supertest";
+import { loginAndGetCookies } from "./testUtils.js";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
 
 const timestamp = Date.now();
 
-let ownerToken;
+let ownerCookies = [];
+let ownerCsrfToken;
 let ownerId;
 let ownerUsername = `owner${timestamp}`;
 
-let guestToken;
+let guestCookies = [];
+let guestCsrfToken;
 let guestId;
 
 beforeAll(async () => {
@@ -28,10 +31,9 @@ beforeAll(async () => {
   });
   ownerId = owner.id;
 
-  const ownerLogin = await request(app)
-    .post("/api/auth/login")
-    .send({ email: owner.email, password: "Password1" });
-  ownerToken = ownerLogin.body.token;
+  const authData_ownerCookies = await loginAndGetCookies(owner.email, "Password1");
+  ownerCookies = authData_ownerCookies.cookies;
+  ownerCsrfToken = authData_ownerCookies.csrfToken;
 
   const guest = await prisma.user.create({
     data: {
@@ -45,10 +47,9 @@ beforeAll(async () => {
   });
   guestId = guest.id;
 
-  const guestLogin = await request(app)
-    .post("/api/auth/login")
-    .send({ email: guest.email, password: "Password1" });
-  guestToken = guestLogin.body.token;
+  const authData_guestCookies = await loginAndGetCookies(guest.email, "Password1");
+  guestCookies = authData_guestCookies.cookies;
+  guestCsrfToken = authData_guestCookies.csrfToken;
 }, 30000);
 
 afterAll(async () => {
@@ -57,6 +58,9 @@ afterAll(async () => {
   });
   await prisma.project.deleteMany({
     where: { authorId: { in: [ownerId, guestId] } },
+  });
+  await prisma.refreshToken.deleteMany({
+    where: { userId: { in: [ownerId, guestId] } },
   });
   await prisma.otpToken.deleteMany({
     where: { userId: { in: [ownerId, guestId] } },
@@ -68,18 +72,18 @@ afterAll(async () => {
 }, 30000);
 
 describe("PUT /api/users/me", () => {
-  it("should return 401 without token", async () => {
+  it("should return 403 without csrf token", async () => {
     const res = await request(app).put("/api/users/me").send({
       bio: "Trying to update without auth",
     });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("should return 400 with invalid URL fields", async () => {
     const res = await request(app)
       .put("/api/users/me")
-      .set("Authorization", `Bearer ${ownerToken}`)
+      .set("Cookie", ownerCookies).set("x-csrf-token", ownerCsrfToken)
       .send({
         githubLink: "invalid-url",
       });
@@ -90,7 +94,7 @@ describe("PUT /api/users/me", () => {
   it("should return 200 and normalize skills properly on valid update", async () => {
     const res = await request(app)
       .put("/api/users/me")
-      .set("Authorization", `Bearer ${ownerToken}`)
+      .set("Cookie", ownerCookies).set("x-csrf-token", ownerCsrfToken)
       .send({
         bio: "Updated bio for testing.",
         githubLink: "https://github.com/test",
@@ -102,9 +106,25 @@ describe("PUT /api/users/me", () => {
     expect(res.body.githubLink).toBe("https://github.com/test");
 
     const skillNames = res.body.skills.map((s) => s.name);
-    expect(skillNames).toContain("React");
-    expect(skillNames).toContain("Node.js");
-    expect(skillNames).toContain("Prisma");
+    expect(skillNames).toContain("REACT");
+    expect(skillNames).toContain("NODE.JS");
+    expect(skillNames).toContain("PRISMA");
+  });
+});
+
+describe("DELETE /api/users/me/photo", () => {
+  it("should return 403 without csrf token", async () => {
+    const res = await request(app).delete("/api/users/me/photo");
+    expect(res.status).toBe(403);
+  });
+
+  it("should return 200 and remove the photo on successful request", async () => {
+    const res = await request(app)
+      .delete("/api/users/me/photo")
+      .set("Cookie", ownerCookies).set("x-csrf-token", ownerCsrfToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Profile photo removed successfully.");
   });
 });
 
@@ -117,7 +137,7 @@ describe("GET /api/users/me/dashboard", () => {
   it("should return 200 with complete private data for authenticated user", async () => {
     const res = await request(app)
       .get("/api/users/me/dashboard")
-      .set("Authorization", `Bearer ${ownerToken}`);
+      .set("Cookie", ownerCookies).set("x-csrf-token", ownerCsrfToken);
 
     expect(res.status).toBe(200);
     expect(res.body.id).toBe(ownerId);
@@ -146,7 +166,7 @@ describe("GET /api/users/:username", () => {
   it("should return 200 PUBLIC data when logged in as a DIFFERENT user", async () => {
     const res = await request(app)
       .get(`/api/users/${ownerUsername}`)
-      .set("Authorization", `Bearer ${guestToken}`);
+      .set("Cookie", guestCookies).set("x-csrf-token", guestCsrfToken);
 
     expect(res.status).toBe(200);
     expect(res.body.username).toBe(ownerUsername);
@@ -157,7 +177,7 @@ describe("GET /api/users/:username", () => {
   it("should return 200 MERGED data when logged in as the profile OWNER", async () => {
     const res = await request(app)
       .get(`/api/users/${ownerUsername}`)
-      .set("Authorization", `Bearer ${ownerToken}`);
+      .set("Cookie", ownerCookies).set("x-csrf-token", ownerCsrfToken);
 
     expect(res.status).toBe(200);
     expect(res.body.username).toBe(ownerUsername);

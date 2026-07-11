@@ -3,6 +3,8 @@ import {
   registerSchema,
   loginSchema,
   otpSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from "../../validators/authValidator.js";
 
 describe("registerSchema", () => {
@@ -128,6 +130,69 @@ describe("loginSchema", () => {
       email: "john@gmail.com",
       password: "Password1",
     });
+    expect(error).toBeDefined();
+  });
+});
+
+describe("forgotPasswordSchema", () => {
+  it("should pass with valid email", () => {
+    const { error } = forgotPasswordSchema.validate({
+      email: "e1234567@u.nus.edu",
+    });
+    expect(error).toBeUndefined();
+  });
+
+  it("should pass with valid username", () => {
+    const { error } = forgotPasswordSchema.validate({
+      username: "johndoe",
+    });
+    expect(error).toBeUndefined();
+  });
+
+  it("should fail when neither email nor username is provided", () => {
+    const { error } = forgotPasswordSchema.validate({});
+    expect(error).toBeDefined();
+  });
+
+  it("should fail with non-NUS email", () => {
+    const { error } = forgotPasswordSchema.validate({
+      email: "john@gmail.com",
+    });
+    expect(error).toBeDefined();
+  });
+});
+
+describe("resetPasswordSchema", () => {
+  it("should pass with a valid new password", () => {
+    const { error } = resetPasswordSchema.validate({
+      newPassword: "NewPassword1",
+    });
+    expect(error).toBeUndefined();
+  });
+
+  it("should fail with password under 8 characters", () => {
+    const { error } = resetPasswordSchema.validate({
+      newPassword: "Pass1",
+    });
+    expect(error).toBeDefined();
+  });
+
+  it("should fail with password containing no numbers", () => {
+    const { error } = resetPasswordSchema.validate({
+      newPassword: "PasswordOnly",
+    });
+    expect(error).toBeDefined();
+  });
+
+  it("should fail with password containing no letters", () => {
+    const { error } = resetPasswordSchema.validate({
+      newPassword: "12345678",
+    });
+    expect(error).toBeDefined();
+  });
+
+  it("should fail when password is missing", () => {
+    const { error } = resetPasswordSchema.validate({});
     expect(error).toBeDefined();
   });
 });

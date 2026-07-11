@@ -8,6 +8,7 @@ import {
   jest,
 } from "@jest/globals";
 import request from "supertest";
+import { loginAndGetCookies } from "./testUtils.js";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
 import notificationEmitter from "../../utils/notificationEmitter.js";
@@ -16,8 +17,10 @@ jest.spyOn(notificationEmitter, "emit").mockImplementation(() => {});
 
 const timestamp = Date.now();
 
-let authToken1;
-let authToken2;
+let validCookies1 = [];
+let validCsrfToken1;
+let validCookies2 = [];
+let validCsrfToken2;
 let testUser1Id;
 let testUser2Id;
 let testTopicId;
@@ -56,15 +59,13 @@ beforeAll(async () => {
   });
   testUser2Id = user2.id;
 
-  const loginRes1 = await request(app)
-    .post("/api/auth/login")
-    .send({ email: user1.email, password });
-  authToken1 = loginRes1.body.token;
+  const authData_validCookies1 = await loginAndGetCookies(user1.email, password);
+  validCookies1 = authData_validCookies1.cookies;
+  validCsrfToken1 = authData_validCookies1.csrfToken;
 
-  const loginRes2 = await request(app)
-    .post("/api/auth/login")
-    .send({ email: user2.email, password });
-  authToken2 = loginRes2.body.token;
+  const authData_validCookies2 = await loginAndGetCookies(user2.email, password);
+  validCookies2 = authData_validCookies2.cookies;
+  validCsrfToken2 = authData_validCookies2.csrfToken;
 
   const topic = await prisma.topic.create({
     data: {
@@ -98,6 +99,9 @@ beforeAll(async () => {
 afterAll(async () => {
   await prisma.post.deleteMany({ where: { topicId: testTopicId } });
   await prisma.topic.deleteMany({ where: { id: testTopicId } });
+  await prisma.refreshToken.deleteMany({
+    where: { userId: { in: [testUser1Id, testUser2Id] } },
+  });
   await prisma.otpToken.deleteMany({
     where: { userId: { in: [testUser1Id, testUser2Id] } },
   });
@@ -112,17 +116,17 @@ afterEach(() => {
 });
 
 describe("POST /api/posts/:id/comments", () => {
-  it("should return 401 without token", async () => {
+  it("should return 403 without csrf token", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPost1Id}/comments`)
       .send({ content: "Testing without auth token." });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("should return 400 for non-existent post", async () => {
     const res = await request(app)
       .post("/api/posts/99999/comments")
-      .set("Authorization", `Bearer ${authToken1}`)
+      .set("Cookie", validCookies1).set("x-csrf-token", validCsrfToken1)
       .send({ content: "Valid content" });
     expect(res.status).toBe(400);
   });
@@ -130,7 +134,7 @@ describe("POST /api/posts/:id/comments", () => {
   it("should return 201 when creating a top-level comment", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPost1Id}/comments`)
-      .set("Authorization", `Bearer ${authToken2}`)
+      .set("Cookie", validCookies2).set("x-csrf-token", validCsrfToken2)
       .send({ content: "First top-level comment" });
 
     expect(res.status).toBe(201);
@@ -154,7 +158,7 @@ describe("POST /api/posts/:id/comments", () => {
   it("should return 400 when parentId belongs to a completely different post", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPost2Id}/comments`)
-      .set("Authorization", `Bearer ${authToken1}`)
+      .set("Cookie", validCookies1).set("x-csrf-token", validCsrfToken1)
       .send({
         content: "Trying to reply to a comment on Post 1",
         parentId: topLevelCommentId,
@@ -169,7 +173,7 @@ describe("POST /api/posts/:id/comments", () => {
   it("should return 201 when creating a nested reply", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPost1Id}/comments`)
-      .set("Authorization", `Bearer ${authToken1}`)
+      .set("Cookie", validCookies1).set("x-csrf-token", validCsrfToken1)
       .send({
         content: "This is a reply to the top level comment.",
         parentId: topLevelCommentId,
@@ -189,6 +193,16 @@ describe("POST /api/posts/:id/comments", () => {
         postId: testPost1Id,
       }),
     );
+  });
+
+  it("should return 201 when creating an anonymous comment", async () => {
+    const res = await request(app)
+      .post(`/api/posts/${testPost1Id}/comments`)
+      .set("Cookie", validCookies1).set("x-csrf-token", validCsrfToken1)
+      .send({ content: "Secret comment", isAnonymous: true });
+
+    expect(res.status).toBe(201);
+    expect(res.body.isAnonymous).toBe(true);
   });
 });
 
@@ -211,28 +225,37 @@ describe("GET /api/posts/:id/comments", () => {
     expect(reply).toBeDefined();
     expect(reply.content).toBe("This is a reply to the top level comment.");
   });
+
+  it("should mask author identity for anonymous comments", async () => {
+    const res = await request(app).get(`/api/posts/${testPost1Id}/comments`);
+    const anonComment = res.body.find((c) => c.content === "Secret comment");
+
+    expect(anonComment).toBeDefined();
+    expect(anonComment.author.username).toBe("Anonymous");
+    expect(anonComment.author.profilePic).toBeNull();
+  });
 });
 
 describe("PUT /api/comments/:id", () => {
   beforeAll(async () => {
     const res = await request(app)
       .post(`/api/posts/${testPost1Id}/comments`)
-      .set("Authorization", `Bearer ${authToken2}`)
+      .set("Cookie", validCookies2).set("x-csrf-token", validCsrfToken2)
       .send({ content: "User 2's original comment" });
     user2CommentId = res.body.id;
   });
 
-  it("should return 401 without token", async () => {
+  it("should return 403 without csrf token", async () => {
     const res = await request(app)
       .put(`/api/comments/${user2CommentId}`)
       .send({ content: "Hacked update" });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("should return 400 when trying to edit someone else's comment", async () => {
     const res = await request(app)
       .put(`/api/comments/${user2CommentId}`)
-      .set("Authorization", `Bearer ${authToken1}`)
+      .set("Cookie", validCookies1).set("x-csrf-token", validCsrfToken1)
       .send({ content: "Hacked update" });
 
     expect(res.status).toBe(400);
@@ -242,7 +265,7 @@ describe("PUT /api/comments/:id", () => {
   it("should return 200 when editing own comment", async () => {
     const res = await request(app)
       .put(`/api/comments/${user2CommentId}`)
-      .set("Authorization", `Bearer ${authToken2}`)
+      .set("Cookie", validCookies2).set("x-csrf-token", validCsrfToken2)
       .send({ content: "User 2's officially updated comment" });
 
     expect(res.status).toBe(200);
@@ -254,7 +277,7 @@ describe("DELETE /api/comments/:id", () => {
   it("should return 400 when trying to delete someone else's comment", async () => {
     const res = await request(app)
       .delete(`/api/comments/${user2CommentId}`)
-      .set("Authorization", `Bearer ${authToken1}`);
+      .set("Cookie", validCookies1).set("x-csrf-token", validCsrfToken1);
 
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/Unauthorized/);
@@ -263,7 +286,7 @@ describe("DELETE /api/comments/:id", () => {
   it("should return 200 when deleting own comment", async () => {
     const res = await request(app)
       .delete(`/api/comments/${user2CommentId}`)
-      .set("Authorization", `Bearer ${authToken2}`);
+      .set("Cookie", validCookies2).set("x-csrf-token", validCsrfToken2);
 
     expect(res.status).toBe(200);
   });
@@ -271,7 +294,7 @@ describe("DELETE /api/comments/:id", () => {
   it("should cascade delete replies when a parent comment is deleted", async () => {
     const deleteRes = await request(app)
       .delete(`/api/comments/${topLevelCommentId}`)
-      .set("Authorization", `Bearer ${authToken2}`);
+      .set("Cookie", validCookies2).set("x-csrf-token", validCsrfToken2);
     expect(deleteRes.status).toBe(200);
 
     const cascadeCheck = await prisma.comment.findUnique({

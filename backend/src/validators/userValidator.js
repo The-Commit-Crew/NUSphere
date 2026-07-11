@@ -22,15 +22,6 @@ export const updateProfileSchema = Joi.object({
         "LinkedIn link must be a valid secure URL (https)",
       "string.max": "URL is too long (cannot exceed 255 characters)",
     }),
-  profilePic: Joi.string()
-    .uri({ scheme: ["https"] })
-    .max(255)
-    .allow(null, "")
-    .messages({
-      "string.uriCustomScheme":
-        "Profile picture must be a valid secure image URL (https)",
-      "string.max": "URL is too long (cannot exceed 255 characters)",
-    }),
   skills: Joi.array()
     .items(
       Joi.string().trim().messages({

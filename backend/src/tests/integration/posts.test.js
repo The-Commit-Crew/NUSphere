@@ -8,6 +8,7 @@ import {
   jest,
 } from "@jest/globals";
 import request from "supertest";
+import { loginAndGetCookies } from "./testUtils.js";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
 import notificationEmitter from "../../utils/notificationEmitter.js";
@@ -16,11 +17,14 @@ jest.spyOn(notificationEmitter, "emit").mockImplementation(() => {});
 
 const timestamp = Date.now();
 
-let authToken;
-let voterToken;
+let validCookies = [];
+let validCsrfToken;
+let voterCookies = [];
+let voterCsrfToken;
 let testUserId;
 let testTopicId;
 let testPostId;
+let anonPostId;
 let voterUserId;
 
 const testUser = {
@@ -47,11 +51,9 @@ beforeAll(async () => {
   });
   testUserId = user.id;
 
-  const loginRes = await request(app)
-    .post("/api/auth/login")
-    .send({ email: testUser.email, password: testUser.password });
-
-  authToken = loginRes.body.token;
+  const authData_validCookies = await loginAndGetCookies(testUser.email, testUser.password);
+  validCookies = authData_validCookies.cookies;
+  validCsrfToken = authData_validCookies.csrfToken;
 
   const topic = await prisma.topic.create({
     data: {
@@ -73,20 +75,24 @@ beforeAll(async () => {
   });
   voterUserId = voterUser.id;
 
-  const voterLogin = await request(app)
-    .post("/api/auth/login")
-    .send({ email: voterUser.email, password: testUser.password });
-
-  voterToken = voterLogin.body.token;
+  const authData_voterCookies = await loginAndGetCookies(voterUser.email, testUser.password);
+  voterCookies = authData_voterCookies.cookies;
+  voterCsrfToken = authData_voterCookies.csrfToken;
 }, 30000);
 
 afterAll(async () => {
   await prisma.vote.deleteMany({ where: { userId: testUserId } });
   await prisma.post.deleteMany({ where: { authorId: testUserId } });
   await prisma.topic.deleteMany({ where: { id: testTopicId } });
-  await prisma.otpToken.deleteMany({ where: { userId: testUserId } });
-  await prisma.user.deleteMany({ where: { id: testUserId } });
-  await prisma.user.deleteMany({ where: { id: voterUserId } });
+  await prisma.refreshToken.deleteMany({
+    where: { userId: { in: [testUserId, voterUserId] } },
+  });
+  await prisma.otpToken.deleteMany({
+    where: { userId: { in: [testUserId, voterUserId] } },
+  });
+  await prisma.user.deleteMany({
+    where: { id: { in: [testUserId, voterUserId] } },
+  });
   await prisma.$disconnect();
 }, 30000);
 
@@ -95,20 +101,20 @@ afterEach(() => {
 });
 
 describe("POST /api/posts", () => {
-  it("should return 401 without token", async () => {
+  it("should return 403 without csrf token", async () => {
     const res = await request(app).post("/api/posts").send({
       title: "Test Post",
       content: "Testing without auth token.",
       topicId: testTopicId,
     });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("should return 400 with missing fields", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         content: "This content is long enough but missing fields.",
       });
@@ -119,7 +125,7 @@ describe("POST /api/posts", () => {
   it("should return 400 with content under 10 characters", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         title: "Valid Title",
         content: "Short",
@@ -132,7 +138,7 @@ describe("POST /api/posts", () => {
   it("should return 400 with title under 3 characters", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         title: "Hi",
         content: "This is valid content for the test.",
@@ -145,7 +151,7 @@ describe("POST /api/posts", () => {
   it("should return 400 with non-existent topicId", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         title: "Valid Title",
         content: "This is valid content for the test.",
@@ -158,7 +164,7 @@ describe("POST /api/posts", () => {
   it("should return 201 with valid token and valid body", async () => {
     const res = await request(app)
       .post("/api/posts")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         title: "Valid Post Title",
         content: "This is valid content for our integration test.",
@@ -170,6 +176,23 @@ describe("POST /api/posts", () => {
     expect(res.body.authorId).toBe(testUserId);
 
     testPostId = res.body.id;
+  });
+
+  it("should return 201 when creating an anonymous post", async () => {
+    const res = await request(app)
+      .post("/api/posts")
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
+      .send({
+        title: "Anonymous Post",
+        content: "This is a secret post.",
+        topicId: testTopicId,
+        isAnonymous: true,
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.isAnonymous).toBe(true);
+
+    anonPostId = res.body.id;
   });
 });
 
@@ -186,27 +209,36 @@ describe("GET /api/posts/:id", () => {
     expect(res.body.userVoteStatus).toBeNull();
   });
 
+  it("should mask the author identity when fetching an anonymous post", async () => {
+    const res = await request(app).get(`/api/posts/${anonPostId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.author.username).toBe("Anonymous");
+    expect(res.body.author.firstName).toBe("Anonymous");
+    expect(res.body.author.lastName).toBe("");
+  });
+
   it("should return correct userVoteStatus for authenticated user", async () => {
     let res = await request(app)
       .get(`/api/posts/${testPostId}`)
-      .set("Authorization", `Bearer ${authToken}`);
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
 
     expect(res.status).toBe(200);
     expect(res.body.userVoteStatus).toBeNull();
 
     await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({ voteType: "UP" });
     res = await request(app)
       .get(`/api/posts/${testPostId}`)
-      .set("Authorization", `Bearer ${authToken}`);
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
 
     expect(res.status).toBe(200);
     expect(res.body.userVoteStatus).toBe("UP");
     await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({ voteType: "UP" });
   });
 
@@ -218,18 +250,18 @@ describe("GET /api/posts/:id", () => {
 });
 
 describe("POST /api/posts/:id/vote", () => {
-  it("should return 401 without token", async () => {
+  it("should return 403 without csrf token", async () => {
     const res = await request(app).post(`/api/posts/${testPostId}/vote`).send({
       voteType: "UP",
     });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("should return 400 with invalid voteType", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         voteType: "UPVOTE",
       });
@@ -240,7 +272,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 400 for non-existent post", async () => {
     const res = await request(app)
       .post("/api/posts/99999/vote")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
       .send({
         voteType: "UP",
       });
@@ -251,7 +283,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 200 and increment upvote on New Vote (Scenario A)", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${voterToken}`)
+      .set("Cookie", voterCookies).set("x-csrf-token", voterCsrfToken)
       .send({
         voteType: "UP",
       });
@@ -275,7 +307,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 200 and adjust counts on Switch Vote (Scenario C)", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${voterToken}`)
+      .set("Cookie", voterCookies).set("x-csrf-token", voterCsrfToken)
       .send({
         voteType: "DOWN",
       });
@@ -289,7 +321,7 @@ describe("POST /api/posts/:id/vote", () => {
   it("should return 200 and decrement counts on Toggle Off (Scenario B)", async () => {
     const res = await request(app)
       .post(`/api/posts/${testPostId}/vote`)
-      .set("Authorization", `Bearer ${voterToken}`)
+      .set("Cookie", voterCookies).set("x-csrf-token", voterCsrfToken)
       .send({
         voteType: "DOWN",
       });
@@ -303,14 +335,11 @@ describe("POST /api/posts/:id/vote", () => {
 
 describe("GET /api/posts", () => {
   it("should return 200 and a list of posts ordered by newest first", async () => {
-    await request(app)
-      .post("/api/posts")
-      .set("Authorization", `Bearer ${authToken}`)
-      .send({
-        title: "The Newest Post",
-        content: "This is a brand new post to test the sorting logic.",
-        topicId: testTopicId,
-      });
+    await request(app).post("/api/posts").set("Cookie", validCookies).set("x-csrf-token", validCsrfToken).send({
+      title: "The Newest Post",
+      content: "This is a brand new post to test the sorting logic.",
+      topicId: testTopicId,
+    });
 
     const res = await request(app).get("/api/posts");
 
@@ -331,5 +360,105 @@ describe("GET /api/posts", () => {
     expect(newestPost.author.firstName).toBeDefined();
     expect(newestPost.topic).toBeDefined();
     expect(newestPost.topic.name).toBeDefined();
+  });
+
+  it("should mask the author identity for anonymous posts in the global feed", async () => {
+    const res = await request(app).get("/api/posts");
+
+    const fetchedAnonPost = res.body.find((p) => p.id === anonPostId);
+    expect(fetchedAnonPost).toBeDefined();
+    expect(fetchedAnonPost.author.username).toBe("Anonymous");
+    expect(fetchedAnonPost.author.firstName).toBe("Anonymous");
+    expect(fetchedAnonPost.author.lastName).toBe("");
+  });
+
+  it("should apply pagination limits correctly", async () => {
+    const res = await request(app).get("/api/posts?limit=1");
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBe(1);
+  });
+
+  it("should return 200 when sorted by top", async () => {
+    const res = await request(app).get("/api/posts?sort=top");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    if (res.body.length > 1) {
+      expect(res.body[0].upvoteCount).toBeGreaterThanOrEqual(
+        res.body[1].upvoteCount,
+      );
+    }
+  });
+
+  it("should return 200 when sorted by hot", async () => {
+    const res = await request(app).get("/api/posts?sort=hot");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("should return 200 and filter by topicId", async () => {
+    const res = await request(app).get(`/api/posts?topicId=${testTopicId}`);
+    expect(res.status).toBe(200);
+    res.body.forEach((post) => {
+      expect(post.topicId).toBe(testTopicId);
+    });
+  });
+
+  it("should return 200 and filter by search query", async () => {
+    const res = await request(app).get("/api/posts?q=Integration");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("should return 400 for invalid query parameters", async () => {
+    const res = await request(app).get(
+      "/api/posts?sort=invalidSort&limit=1000",
+    );
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("DELETE /api/posts/:id", () => {
+  let postToDeleteId;
+
+  beforeAll(async () => {
+    const res = await request(app)
+      .post("/api/posts")
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken)
+      .send({
+        title: "Post to delete",
+        content: "This post will be deleted during tests.",
+        topicId: testTopicId,
+      });
+    postToDeleteId = res.body.id;
+  });
+
+  it("should return 403 without csrf token", async () => {
+    const res = await request(app).delete(`/api/posts/${postToDeleteId}`);
+    expect(res.status).toBe(403);
+  });
+
+  it("should return 400 for non-existent post", async () => {
+    const res = await request(app)
+      .delete("/api/posts/99999")
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
+    expect(res.status).toBe(400);
+  });
+
+  it("should return 400 if user is not the author", async () => {
+    const res = await request(app)
+      .delete(`/api/posts/${postToDeleteId}`)
+      .set("Cookie", voterCookies).set("x-csrf-token", voterCsrfToken);
+    expect(res.status).toBe(400);
+  });
+
+  it("should return 200 and delete the post", async () => {
+    const res = await request(app)
+      .delete(`/api/posts/${postToDeleteId}`)
+      .set("Cookie", validCookies).set("x-csrf-token", validCsrfToken);
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Post deleted successfully");
+
+    const getRes = await request(app).get(`/api/posts/${postToDeleteId}`);
+    expect(getRes.status).toBe(400);
   });
 });

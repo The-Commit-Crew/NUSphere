@@ -3,10 +3,13 @@ import {
   authenticateToken,
   optionalAuth,
 } from "../middleware/authMiddleware.js";
+import { uploadProfilePic } from "../middleware/uploadMiddleware.js";
 import {
   updateUserProfile,
   getUserDashboard,
   getUserProfile,
+  updateProfilePhoto,
+  removeProfilePhoto,
 } from "../controllers/userController.js";
 
 const router = Router();
@@ -19,7 +22,7 @@ const router = Router();
  *     description: Returns the user's core identity data, skills, authored projects (with inbound applications), and the status of outbound applications.
  *     tags: [Users]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Dashboard data retrieved successfully
@@ -56,7 +59,7 @@ router.get("/me/dashboard", authenticateToken, getUserDashboard);
  *     description: Updates profile fields such as bio, links, and profile picture. Completely replaces the existing skills array with the new one provided. Unprovided fields remain unchanged.
  *     tags: [Users]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -99,7 +102,7 @@ router.put("/me", authenticateToken, updateUserProfile);
  *     description: Retrieves a user's public profile based on their username. If the requesting user is the owner of the profile, private data (like email and private applications) is appended to the response.
  *     tags: [Users]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: username
@@ -123,5 +126,61 @@ router.put("/me", authenticateToken, updateUserProfile);
  *               $ref: '#/components/schemas/Error'
  */
 router.get("/:username", optionalAuth, getUserProfile);
+
+/**
+ * @swagger
+ * /api/users/me/photo:
+ *   patch:
+ *     summary: Upload a new profile photo
+ *     description: Accepts a multipart/form-data image, uploads it to Cloudinary, and updates the user's profile.
+ *     tags: [Users]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profileImage:
+ *                 type: string
+ *                 format: binary
+ *                 description: The image file to upload (jpg, jpeg, png, webp). Max size 5MB.
+ *     responses:
+ *       200:
+ *         description: Profile photo successfully updated.
+ *       400:
+ *         description: No file provided or invalid file format/size.
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (CSRF token missing/invalid)
+ */
+router.patch(
+  "/me/photo",
+  authenticateToken,
+  uploadProfilePic.single("profileImage"),
+  updateProfilePhoto,
+);
+
+/**
+ * @swagger
+ * /api/users/me/photo:
+ *   delete:
+ *     summary: Remove profile photo
+ *     description: Deletes the user's profile photo by setting the database field to null. Requires CSRF token.
+ *     tags: [Users]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile photo removed successfully.
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (CSRF token missing/invalid)
+ */
+router.delete("/me/photo", authenticateToken, removeProfilePhoto);
 
 export default router;

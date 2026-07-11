@@ -21,11 +21,12 @@ const options = {
     ],
     components: {
       securitySchemes: {
-        bearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
-          description: "Enter your JWT token",
+        cookieAuth: {
+          type: "apiKey",
+          in: "cookie",
+          name: "accessToken",
+          description:
+            "HttpOnly cookie containing the access token for authentication. Swagger will automatically pass this if it is set in your browser during testing.",
         },
       },
       schemas: {
@@ -290,10 +291,13 @@ const options = {
               type: "string",
               example: "I would strongly recommend taking CS1101S first...",
             },
+            upvoteCount: { type: "integer", example: 15 },
+            downvoteCount: { type: "integer", example: 2 },
             authorId: { type: "integer", example: 1 },
             topicId: { type: "integer", example: 1 },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
+            isAnonymous: { type: "boolean", example: false },
           },
         },
 
@@ -310,10 +314,13 @@ const options = {
               type: "string",
               example: "I would strongly recommend taking CS1101S first...",
             },
+            upvoteCount: { type: "integer", example: 15 },
+            downvoteCount: { type: "integer", example: 2 },
             authorId: { type: "integer", example: 1 },
             topicId: { type: "integer", example: 1 },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
+            isAnonymous: { type: "boolean", example: false },
             author: {
               type: "object",
               description: "Partial author details",
@@ -330,6 +337,13 @@ const options = {
                 name: { type: "string", example: "Modules" },
               },
             },
+            _count: {
+              type: "object",
+              description: "Comment count",
+              properties: {
+                comments: { type: "integer" },
+              },
+            },
           },
         },
 
@@ -343,6 +357,7 @@ const options = {
             parentId: { type: "integer", nullable: true, example: null },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
+            isAnonymous: { type: "boolean", example: false },
           },
         },
 
@@ -351,6 +366,7 @@ const options = {
           properties: {
             id: { type: "integer", example: 1 },
             content: { type: "string", example: "This is a great point!" },
+            isAnonymous: { type: "boolean", example: false },
             author: {
               type: "object",
               properties: {
@@ -419,6 +435,35 @@ const options = {
           },
         },
 
+        ForgotPasswordRequest: {
+          type: "object",
+          required: [],
+          properties: {
+            email: {
+              type: "string",
+              example: "e1234567@u.nus.edu",
+              description: "Provide either email or username",
+            },
+            username: {
+              type: "string",
+              example: "johndoe",
+              description: "Provide either email or username",
+            },
+          },
+        },
+
+        ResetPasswordRequest: {
+          type: "object",
+          required: ["newPassword"],
+          properties: {
+            newPassword: {
+              type: "string",
+              example: "Password123",
+              description: "Must meet password complexity requirements",
+            },
+          },
+        },
+
         CreatePostRequest: {
           type: "object",
           required: ["title", "content", "topicId"],
@@ -432,6 +477,7 @@ const options = {
               example: "I would strongly recommend taking CS1101S first...",
             },
             topicId: { type: "integer", example: 1 },
+            isAnonymous: { type: "boolean", example: false },
           },
         },
 
@@ -442,12 +488,6 @@ const options = {
               type: "string",
               enum: ["login", "otp_required", "verified"],
               example: "login",
-            },
-            token: {
-              type: "string",
-              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-              description:
-                "JWT token — only present when action is login or verified",
             },
             email: {
               type: "string",

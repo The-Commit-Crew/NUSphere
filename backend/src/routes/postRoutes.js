@@ -7,6 +7,7 @@ import {
   getPostById,
   castVote,
   getAllPosts,
+  deletePost,
 } from "../controllers/postController.js";
 import {
   createComment,
@@ -24,7 +25,7 @@ const router = Router();
  *     description: Creates a new post under a specified topic. Requires a valid JWT token in the Authorization header.
  *     tags: [Posts]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -91,11 +92,11 @@ router.get("/", getAllPosts);
  *     summary: Get a post by ID
  *     description: >
  *       Returns a single post along with the author's username, firstName,
- *       and lastName, and the topic name. If a valid JWT token is provided,
+ *       and lastName, the topic name and comment content. If a valid JWT token is provided,
  *       also returns the authenticated user's current vote status on the post.
  *     tags: [Posts]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *       - {}
  *     parameters:
  *       - in: path
@@ -123,6 +124,14 @@ router.get("/", getAllPosts);
  *                         The current user's vote on this post.
  *                         null if unauthenticated or not yet voted.
  *                       example: "UP"
+ *                     bookmarkStatus:
+ *                       type: boolean
+ *                       nullable: true
+ *                       description: >
+ *                         Whether the current user has bookmarked this post.
+ *                         null if unauthenticated, true/false if logged in.
+ *                       example: true
+ *
  *       400:
  *         description: Post not found
  *         content:
@@ -134,6 +143,55 @@ router.get("/:id", optionalAuth, getPostById);
 
 /**
  * @swagger
+ * /api/posts/{id}:
+ *   delete:
+ *     summary: Delete a post
+ *     description: Deletes a specific post if the authenticated user is the author. Requires a valid JWT token.
+ *     tags: [Posts]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The numeric ID of the post to delete
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Post deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Post deleted successfully"
+ *       400:
+ *         description: Post not found or user is not authorized to delete it
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: No token provided
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Token invalid or expired
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.delete("/:id", authenticateToken, deletePost);
+
+/**
+ * @swagger
  * /api/posts/{id}/vote:
  *   post:
  *     summary: Cast a vote on a post
@@ -141,7 +199,7 @@ router.get("/:id", optionalAuth, getPostById);
  *       switch their vote, it updates their choice. Requires a valid JWT token.
  *     tags: [Posts]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -243,7 +301,7 @@ router.get("/:id/comments", getPostComments);
  *     description: Creates a new top-level comment, or a nested reply if a valid `parentId` is provided. Requires a valid JWT token.
  *     tags: [Posts]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -270,6 +328,10 @@ router.get("/:id/comments", getPostComments);
  *                 nullable: true
  *                 description: The ID of the comment being replied to. Omit or set to null for top-level comments.
  *                 example: null
+ *               isAnonymous:
+ *                 type: boolean
+ *                 nullable: true
+ *                 example: false
  *     responses:
  *       201:
  *         description: Comment created successfully

@@ -6,7 +6,6 @@ describe("updateProfileSchema", () => {
     bio: "I am a full stack developer.",
     githubLink: "https://github.com/nusphere",
     linkedinLink: "https://linkedin.com/in/nusphere",
-    profilePic: "https://example.com/pic.png",
     skills: ["React", "Node.js"],
   };
 
@@ -23,7 +22,6 @@ describe("updateProfileSchema", () => {
       bio: null,
       githubLink: null,
       linkedinLink: null,
-      profilePic: null,
       skills: null,
     });
     expect(nullError).toBeUndefined();

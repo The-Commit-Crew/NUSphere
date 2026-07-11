@@ -382,9 +382,12 @@ function Postdetailpage() {
               border: `1px solid ${userVoteStatus === 'UP' ? '#C4552A' : '#E8E0D8'}`,
               backgroundColor: userVoteStatus === 'UP' ? '#FDF6F3' : 'transparent',
             }}
-            className="flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium transition-colors"
+           className="flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium transition-colors"
           >
-            ▲ {upvoteCount}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
+            {upvoteCount}
           </button>
 
           <button
@@ -394,9 +397,12 @@ function Postdetailpage() {
               border: `1px solid ${userVoteStatus === 'DOWN' ? '#C4552A' : '#E8E0D8'}`,
               backgroundColor: userVoteStatus === 'DOWN' ? '#FDF6F3' : 'transparent',
             }}
-            className="flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium transition-colors"
+           className="flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium transition-colors"
           >
-            ▼ {downvoteCount}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M19 12l-7 7-7-7" />
+            </svg>
+            {downvoteCount}
           </button>
 
           {voteMessage && (

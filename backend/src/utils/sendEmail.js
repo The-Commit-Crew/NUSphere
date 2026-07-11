@@ -52,3 +52,31 @@ export const sendProjectUpdateEmail = async (
     `,
   });
 };
+
+export const sendPasswordResetEmail = async (email, resetUrl) => {
+  await transporter.sendMail({
+    from: `"NUSphere" <${process.env.GMAIL_USER}>`,
+    to: email,
+    subject: "NUSphere - Password Reset Request",
+    html: `
+      <p>We received a request to reset the password for your NUSphere account. You can reset your password by clicking the button below:</p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetUrl}" style="background-color: #B65C36; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+          Reset My Password
+        </a>
+      </div>
+      
+      <p>Or, copy and paste this link into your browser:</p>
+      <p><a href="${resetUrl}" style="word-break: break-all;">${resetUrl}</a></p>
+      
+      <p style="color: #d9534f; font-weight: bold;">This link will expire in 15 minutes.</p>
+      
+      <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+      
+      <p style="font-size: 0.9em; color: #777;">
+        If you did not request a password reset, please ignore this email. Your password will remain unchanged.
+      </p>
+    `,
+  });
+};
