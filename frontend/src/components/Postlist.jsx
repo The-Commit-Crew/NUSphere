@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getAllPosts, castVote, deletePost } from '../services/Authservice'
+import { getAllPosts, castVote, deletePost,  toggleBookmark, getBookmarkedPosts } from '../services/Authservice'
 import DeleteConfirmDialog from './DeleteConfirmDialog'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -11,6 +11,20 @@ function Postlist({ selectedTopicId, searchQuery , sortBy }) {
   const [voteMessage, setVoteMessage] = useState('')
   const navigate = useNavigate()
   const { token, user } = useAuth()
+  const [bookmarkedIds, setBookmarkedIds] = useState(new Set())
+  const [prevUser, setPrevUser] = useState(user)
+
+  if (user !== prevUser) {
+    setPrevUser(user)
+    setBookmarkedIds(new Set())
+  }
+
+  useEffect(() => {
+    if (!user) return
+    getBookmarkedPosts()
+      .then((bookmarks) => setBookmarkedIds(new Set(bookmarks.map((p) => p.id))))
+      .catch((err) => console.error(err))
+  }, [user])
 
   useEffect(() => {
     async function fetchPosts() {
@@ -70,6 +84,31 @@ function Postlist({ selectedTopicId, searchQuery , sortBy }) {
     console.error(err)
   }
 }
+
+async function handleBookmarkToggle(e, postId) {
+    e.stopPropagation()
+    if (!token) {
+      setVoteMessage('Please log in to save posts')
+      setTimeout(() => setVoteMessage(''), 3000)
+      return
+    }
+    const wasBookmarked = bookmarkedIds.has(postId)
+    setBookmarkedIds((prev) => {
+      const next = new Set(prev)
+      wasBookmarked ? next.delete(postId) : next.add(postId)
+      return next
+    })
+    try {
+      await toggleBookmark(postId)
+    } catch (err) {
+      console.error(err)
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev)
+        wasBookmarked ? next.add(postId) : next.delete(postId)
+        return next
+      })
+    }
+  }
 
   function timeAgo(dateString) {
     const now = new Date()
@@ -197,6 +236,19 @@ function Postlist({ selectedTopicId, searchQuery , sortBy }) {
               </svg>
               {post.commentCount ?? post._count?.comments ?? 0}
             </span>
+            <button
+              onClick={(e) => handleBookmarkToggle(e, post.id)}
+              style={{
+                backgroundColor: bookmarkedIds.has(post.id) ? '#C4552A' : '#F5F0EB',
+                color: bookmarkedIds.has(post.id) ? '#F5F0EB' : '#9A8880',
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium hover:opacity-70"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill={bookmarkedIds.has(post.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+              </svg>
+            </button>
+
             {user && user.id === post.authorId && (
             <button
               onClick={(e) => { e.stopPropagation(); setPendingDeleteId(post.id) }}

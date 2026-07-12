@@ -11,6 +11,7 @@ import {
   updateComment,
   deleteComment,
   deletePost,
+  toggleBookmark,
 } from '../services/Authservice'
 
 function CommentBlock({
@@ -185,6 +186,8 @@ function Postdetailpage() {
   const [userVoteStatus, setUserVoteStatus] = useState(null)
   const [voteMessage, setVoteMessage] = useState('')
 
+  const [isBookmarked, setIsBookmarked] = useState(post?.bookmarkStatus ?? false);
+
   const [comments, setComments] = useState([])
   const [newComment, setNewComment] = useState('')
   const [replyingTo, setReplyingTo] = useState(null)
@@ -225,6 +228,7 @@ function Postdetailpage() {
         setDownvoteCount(postData.downvoteCount)
         setUserVoteStatus(postData.userVoteStatus)
         setComments(commentsData)
+         setIsBookmarked(postData.bookmarkStatus ?? false)
       } catch (err) {
         setError('Failed to load post')
         console.error(err)
@@ -252,7 +256,23 @@ function Postdetailpage() {
       console.error(err)
     }
   }
-  
+ 
+
+
+// sync when post loads/changes
+
+
+const handleBookmarkToggle = async () => {
+  const prev = isBookmarked;
+  setIsBookmarked(!prev); // optimistic
+  try {
+    const { bookmarkStatus } = await toggleBookmark(post.id);
+    setIsBookmarked(bookmarkStatus);
+  } catch (err) {
+    setIsBookmarked(prev); // revert on failure
+    console.error(err);
+  }
+};
 
   async function handleCreateComment() {
     if (!token) {
@@ -388,6 +408,23 @@ function Postdetailpage() {
         <span style={{ color: '#9A8880' }} className="text-sm">
           u/{post.author?.username}
         </span>
+
+              <button
+          onClick={handleBookmarkToggle}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '6px 14px', borderRadius: '9999px',
+            border: `1px solid ${isBookmarked ? '#C4552A' : '#E8E0D8'}`,
+            backgroundColor: isBookmarked ? '#C4552A' : '#F5F0EB',
+            color: isBookmarked ? '#F5F0EB' : '#9A8880',
+          }}
+          className="text-xs font-medium hover:opacity-70"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill={isBookmarked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
+          {isBookmarked ? 'Saved' : 'Save'}
+        </button>
 
         {user && user.id === post.authorId && (
         <button

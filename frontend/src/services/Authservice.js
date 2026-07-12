@@ -245,3 +245,14 @@ export async function getUserNotifications() {
 export async function markNotificationAsRead(notificationId) {
   return apiFetch(`/notifications/${notificationId}/read`, { method: 'PATCH' })
 }
+
+//Bookmark
+
+
+export async function toggleBookmark(postId) {
+  return apiFetch(`/bookmarks/${postId}`, { method: 'POST' })
+}
+
+export async function getBookmarkedPosts() {
+  return apiFetch('/bookmarks')
+}
