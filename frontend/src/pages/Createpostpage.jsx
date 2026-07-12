@@ -12,6 +12,7 @@ function Createpostpage() {
     title: '',
     content: '',
     topicId: '',
+    isAnonymous: false,
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -32,7 +33,8 @@ function Createpostpage() {
   }, [])
 
   function handleChange(e) {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const { name, type, checked, value } = e.target
+    setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value })
   }
 
   async function handleSubmit(e) {
@@ -45,6 +47,7 @@ function Createpostpage() {
           title: formData.title,
           content: formData.content,
           topicId: parseInt(formData.topicId),
+          isAnonymous: formData.isAnonymous,
         },
         token
       )
@@ -130,6 +133,22 @@ function Createpostpage() {
             className="px-3 py-2 rounded-lg text-sm outline-none"
           />
         </div>
+
+        {/* Anonymous toggle */}
+        <label
+          style={{ border: '1px solid #E8E0D8', backgroundColor: '#FAFAF8' }}
+          className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm cursor-pointer w-fit"
+        >
+          <input
+            type="checkbox"
+            name="isAnonymous"
+            checked={formData.isAnonymous}
+            onChange={handleChange}
+            style={{ accentColor: '#C4552A' }}
+            className="w-4 h-4"
+          />
+          <span style={{ color: '#1A1512' }}>Post anonymously</span>
+        </label>
 
         {/* Buttons */}
         <div className="flex gap-3 mt-1">
