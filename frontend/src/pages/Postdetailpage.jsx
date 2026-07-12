@@ -264,6 +264,7 @@ function Postdetailpage() {
         setUserVoteStatus(postData.userVoteStatus)
         setIsBookmarked(postData.bookmarkStatus ?? false)
         setComments(commentsData)
+         setIsBookmarked(postData.bookmarkStatus ?? false)
       } catch (err) {
         setError('Failed to load post')
         console.error(err)
@@ -292,17 +293,22 @@ function Postdetailpage() {
     }
   }
 
-  const handleBookmarkToggle = async () => {
-    const prev = isBookmarked;
-    setIsBookmarked(!prev); // optimistic
-    try {
-      const { bookmarkStatus } = await toggleBookmark(post.id);
-      setIsBookmarked(bookmarkStatus);
-    } catch (err) {
-      setIsBookmarked(prev); // revert on failure
-      console.error(err);
-    }
-  };
+
+
+// sync when post loads/changes
+
+const handleBookmarkToggle = async () => {
+  const prev = isBookmarked;
+  setIsBookmarked(!prev); // optimistic
+  try {
+    const { bookmarkStatus } = await toggleBookmark(post.id);
+    setIsBookmarked(bookmarkStatus);
+  } catch (err) {
+    setIsBookmarked(prev); // revert on failure
+    console.error(err);
+  }
+};
+
 
   async function handleCreateComment() {
     if (!token) {
