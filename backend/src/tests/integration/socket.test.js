@@ -54,7 +54,7 @@ describe("WebSocket Real-Time Notifications", () => {
 
   it("should reject connections with an invalid token", (done) => {
     clientSocket = Client(`http://localhost:${port}`, {
-      auth: { token: "this.is.a.bad.token" },
+      extraHeaders: { cookie: "accessToken=this.is.a.bad.token;" },
     });
 
     clientSocket.on("connect_error", (err) => {
@@ -65,7 +65,7 @@ describe("WebSocket Real-Time Notifications", () => {
 
   it("should successfully connect with a valid token and receive notifications", (done) => {
     clientSocket = Client(`http://localhost:${port}`, {
-      auth: { token: validToken },
+      extraHeaders: { cookie: `accessToken=${validToken};` },
     });
 
     clientSocket.on("connect", () => {
