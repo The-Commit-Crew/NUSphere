@@ -14,7 +14,16 @@ export const initSocket = (server, allowedOrigins) => {
   });
 
   io.use((socket, next) => {
-    const token = socket.handshake.auth.token;
+    const cookieHeader = socket.handshake.headers.cookie;
+    let token = null;
+    if (cookieHeader) {
+      const cookies = cookieHeader.split(';').reduce((acc, cookieStr) => {
+        const [key, value] = cookieStr.trim().split('=');
+        acc[key] = value;
+        return acc;
+      }, {});
+      token = cookies.accessToken;
+    }
     if (!token) {
       return next(new Error("Access denied. No token provided"));
     }

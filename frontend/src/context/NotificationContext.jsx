@@ -29,7 +29,7 @@ export function NotificationProvider({ children }) {
   fetchInitialNotifications()
 
   const socket = io(SOCKET_URL, {
-    auth: { token },
+    withCredentials: true,
   })
 
   socket.on('newNotification', (notification) => {
