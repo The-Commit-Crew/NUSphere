@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { loginUser } from '../services/Authservice'
 import { useAuth } from '../context/AuthContext'
+import PasswordInput from '../components/PasswordInput'
 
 function Loginpage() {
   const navigate = useNavigate()
@@ -32,7 +33,7 @@ function Loginpage() {
     if (result.action === 'otp_required') {
       navigate('/verify-otp', { state: { email: result.email } })
     } else if (result.action === 'login') {
-      login(result.user, result.token)
+      login(result.user)
       navigate('/')
     }
     } catch (err) {
@@ -86,22 +87,12 @@ function Loginpage() {
           </div>
 
           {/* Password */}
-          <div className="flex flex-col gap-1">
-            <label style={{ color: '#1A1512', fontSize: '13px' }} className="font-medium">
-              Password
-            </label>
-            <input
-              name="password"
-              type="password"
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              style={{ border: '1px solid #E8E0D8', color: '#1A1512', backgroundColor: '#FAFAF8' }}
-              className="px-3 py-2 rounded-lg text-sm outline-none"
-            />
+          <PasswordInput name="password" value={formData.password} onChange={handleChange} />
+          <div className="text-right -mt-2">
+            <Link to="/forgot-password" style={{ color: '#C4552A' }} className="text-xs hover:underline">
+              Forgot password?
+            </Link>
           </div>
-
           {/* Submit */}
           <button
             type="submit"

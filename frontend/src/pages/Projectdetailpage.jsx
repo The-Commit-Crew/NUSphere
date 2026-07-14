@@ -8,6 +8,8 @@ import {
   updateApplicationStatus,
 } from '../services/Authservice'
 import ApplicationRow from "../components/Applicationrow";
+import { formatSkill } from '../utils/formatSkill'
+
 
 function statusStyle(status) {
   if (status === 'OPEN') {
@@ -166,9 +168,9 @@ function Projectdetailpage() {
             <span
               key={skill.id}
               style={{ backgroundColor: '#F5F0EB', color: '#9A8880' }}
-              className="px-3 py-1 rounded-full text-sm font-medium"
+              className="px-3 py-1 rounded-full text-sm font-medium "
             >
-              {skill.name}
+              {formatSkill(skill.name)}
             </span>
           ))}
         </div>

@@ -14,6 +14,8 @@ import Editprojectpage from './pages/Editprojectpage'
 import Projectdetailpage from './pages/Projectdetailpage'
 import Profilepage from './pages/Profilepage'
 import Editprofilepage from './pages/Editprofilepage'
+import ForgotPasswordpage from './pages/ForgotPasswordpage'
+import ResetPasswordpage from './pages/ResetPasswordpage'
 function App() {
   return (
     <SearchProvider>
@@ -33,6 +35,8 @@ function App() {
         <Route path="/collaborate/:id" element={<Projectdetailpage />} />
         <Route path="/u/edit" element={<Protectedroute><Editprofilepage /></Protectedroute>}/>
         <Route path="/u/:username" element={<Profilepage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordpage />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordpage />} />
       </Routes>
     </div>
      </SearchProvider>
