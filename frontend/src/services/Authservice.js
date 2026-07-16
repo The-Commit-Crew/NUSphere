@@ -91,6 +91,24 @@ export async function logoutUser() {
   return apiFetch('/auth/logout', { method: 'POST' })
 }
 
+//AccRecovery
+
+export async function requestPasswordReset(data) {
+  return apiFetch('/auth/forgot-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}
+
+export async function resetPassword(token, data) {
+  return apiFetch(`/auth/reset-password/${token}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}
+
 //Topics
 export async function getAllTopics() {
   return apiFetch('/topics')
@@ -256,3 +274,4 @@ export async function toggleBookmark(postId) {
 export async function getBookmarkedPosts() {
   return apiFetch('/bookmarks')
 }
+

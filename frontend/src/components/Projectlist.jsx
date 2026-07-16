@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { formatSkill } from '../utils/formatSkill'
 
 function Projectlist({ projects, loading, error, selectedSkill }) {
   const navigate = useNavigate()
@@ -103,7 +104,7 @@ function Projectlist({ projects, loading, error, selectedSkill }) {
                   style={{ backgroundColor: '#F5F0EB', color: '#9A8880', fontSize: '10px' }}
                   className="px-2 py-0.5 rounded-full font-medium"
                 >
-                  {skill.name}
+                  {formatSkill(skill.name)}
                 </span>
               ))}
               <span style={{ color: '#9A8880', fontSize: '11px', marginLeft: 'auto' }}>
