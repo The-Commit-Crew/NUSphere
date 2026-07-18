@@ -10,7 +10,6 @@ import {
 import request from "supertest";
 import { loginAndGetCookies } from "./testUtils.js";
 import app from "../../app.js";
-import redisClient from "../../config/redis.js";
 import prisma from "../../config/prisma.js";
 
 jest.mock("../../utils/notificationEmitter.js", () => ({
@@ -140,7 +139,6 @@ afterAll(async () => {
     where: { id: { in: [testUser1Id, testUser2Id] } },
   });
   await prisma.$disconnect();
-  await redisClient.quit();
 }, 30000);
 
 afterEach(() => {

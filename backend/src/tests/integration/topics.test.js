@@ -1,7 +1,6 @@
 import { describe, it, beforeAll, afterAll, expect } from "@jest/globals";
 import request from "supertest";
 import app from "../../app.js";
-import redisClient from "../../config/redis.js";
 import prisma from "../../config/prisma.js";
 import { loginAndGetCookies } from "./testUtils.js";
 
@@ -63,7 +62,6 @@ afterAll(async () => {
   await prisma.user.delete({ where: { id: testUserId } });
 
   await prisma.$disconnect();
-  await redisClient.quit();
 }, 30000);
 
 describe("GET /api/topics", () => {

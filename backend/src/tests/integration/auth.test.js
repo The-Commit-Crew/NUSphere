@@ -10,7 +10,6 @@ import {
 import request from "supertest";
 import { loginAndGetCookies } from "./testUtils.js";
 import app from "../../app.js";
-import redisClient from "../../config/redis.js";
 import prisma from "../../config/prisma.js";
 import crypto from "crypto";
 
@@ -88,7 +87,6 @@ afterAll(async () => {
     await prisma.user.deleteMany({ where: { id: testUserId } });
   }
   await prisma.$disconnect();
-  await redisClient.quit();
 }, 30000);
 
 describe("POST /api/auth/register", () => {
