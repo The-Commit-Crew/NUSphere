@@ -9,6 +9,7 @@ import {
   castVote,
   getAllPosts,
   deletePost,
+  checkDuplicates,
 } from "../controllers/postController.js";
 import {
   createComment,
@@ -93,6 +94,67 @@ router.post("/", authenticateToken, moderateContent, createPost);
  *               $ref: '#/components/schemas/Error'
  */
 router.get("/", getAllPosts);
+
+/**
+ * @swagger
+ * /api/posts/check-duplicates:
+ *   post:
+ *     summary: Check for semantically similar posts
+ *     description: >
+ *       Evaluates a drafted post's title and content against the database using vector embeddings.
+ *       Returns up to 3 historically similar posts to prevent duplicate questions.
+ *       Does not require authentication, allowing it to run freely while a user types.
+ *     tags: [Posts]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: The drafted title of the post
+ *                 example: "Is CS2040C hard?"
+ *               content:
+ *                 type: string
+ *                 description: The drafted body content of the post
+ *                 example: "I am struggling with the assignments."
+ *     responses:
+ *       200:
+ *         description: Successfully checked for duplicates. Returns an array of similar posts (empty array if none found).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 similarPosts:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 42
+ *                       title:
+ *                         type: string
+ *                         example: "CS2040C workload is crazy"
+ *                       content:
+ *                         type: string
+ *                         example: "Does anyone else find the data structures hard?"
+ *                       similarity:
+ *                         type: number
+ *                         format: float
+ *                         description: Semantic similarity score (1.0 is a perfect match)
+ *                         example: 0.88
+ *       500:
+ *         description: Internal server error (e.g., AI embedding generation failed)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post("/check-duplicates", checkDuplicates);
 
 /**
  * @swagger

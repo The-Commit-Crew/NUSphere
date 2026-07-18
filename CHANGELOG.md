@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - DELETE endpoint for removing profile photos
 - Signed Double Submit Cookie CSRF protection
 - AI Moderation middleware
+- Intelligent Duplicate Detection
+- Create Topic endpoint
 
 ### Fixed
 

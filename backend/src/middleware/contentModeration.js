@@ -47,6 +47,7 @@ export const moderateContent = async (req, res, next) => {
       categories: flaggedCategories,
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("OpenAI Moderation Error:", error);
     return res.status(500).json({
       message:

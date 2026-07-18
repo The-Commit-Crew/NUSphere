@@ -1,4 +1,6 @@
 import prisma from "../config/prisma.js";
+import { createTopicSchema } from "../validators/topicValidator.js";
+import { evalTopicSubsumption } from "../utils/openaiHelper.js";
 
 export const getAllTopicsService = async () => {
   const topics = await prisma.topic.findMany({
@@ -27,4 +29,40 @@ export const getTopicByIdService = async (topicId) => {
   }
 
   return topic;
+};
+
+export const createTopicService = async ({ name, description }) => {
+  const { value, error } = createTopicSchema.validate({ name, description });
+  if (error) {
+    throw new Error(error.details[0].message);
+  }
+  const existingTopics = await prisma.topic.findMany({
+    select: {
+      id: true,
+      name: true,
+      description: true,
+    },
+  });
+  const aiEval = await evalTopicSubsumption(
+    value.name,
+    value.description,
+    existingTopics,
+  );
+  if (aiEval.isDuplicate) {
+    return {
+      success: false,
+      ...aiEval,
+    };
+  }
+  const newTopic = await prisma.topic.create({
+    data: {
+      name: value.name,
+      description: value.description,
+    },
+  });
+  return {
+    success: true,
+    isDuplicate: false,
+    topic: newTopic,
+  };
 };
