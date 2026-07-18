@@ -2,6 +2,7 @@ import {
   authenticateToken,
   optionalAuth,
 } from "../middleware/authMiddleware.js";
+import { moderateContent } from "../middleware/contentModeration.js";
 import {
   createPost,
   getPostById,
@@ -40,11 +41,13 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/PostWithDetails'
  *       400:
- *         description: Validation error or topic not found
+ *         description: Validation error, topic not found, or content flagged by moderation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
  *       401:
  *         description: No token provided
  *         content:
@@ -57,8 +60,14 @@ const router = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.post("/", authenticateToken, createPost);
+router.post("/", authenticateToken, moderateContent, createPost);
 
 /**
  * @swagger
@@ -340,11 +349,13 @@ router.get("/:id/comments", getPostComments);
  *             schema:
  *               $ref: '#/components/schemas/Comment'
  *       400:
- *         description: Validation error, post not found, or parent comment mismatch
+ *         description: Validation error, post not found, parent comment mismatch, or content flagged by moderation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
  *       401:
  *         description: No token provided
  *         content:
@@ -357,7 +368,13 @@ router.get("/:id/comments", getPostComments);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.post("/:id/comments", authenticateToken, createComment);
+router.post("/:id/comments", authenticateToken, moderateContent, createComment);
 
 export default router;

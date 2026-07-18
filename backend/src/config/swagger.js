@@ -259,7 +259,7 @@ const options = {
           },
         },
 
-        TopicWithPosts: {
+        TopicById: {
           type: "object",
           properties: {
             id: { type: "integer", example: 1 },
@@ -270,12 +270,6 @@ const options = {
             },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
-            posts: {
-              type: "array",
-              items: {
-                $ref: "#/components/schemas/PostWithDetails",
-              },
-            },
           },
         },
 
@@ -510,6 +504,24 @@ const options = {
           type: "object",
           properties: {
             message: { type: "string", example: "Something went wrong" },
+          },
+        },
+
+        ModerationError: {
+          type: "object",
+          properties: {
+            message: {
+              type: "string",
+              example:
+                "Your content was flagged by our automated moderation system. Please revise your text.",
+            },
+            categories: {
+              type: "array",
+              items: { type: "string" },
+              description:
+                "List of categories that the content was flagged for.",
+              example: ["hate", "harassment"],
+            },
           },
         },
 

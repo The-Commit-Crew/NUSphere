@@ -50,13 +50,12 @@ describe("GET /api/topics", () => {
 });
 
 describe("GET /api/topics/:id", () => {
-  it("should return 200 with topic and its posts array", async () => {
+  it("should return 200 with topic details", async () => {
     const res = await request(app).get(`/api/topics/${testTopicId}`);
 
     expect(res.status).toBe(200);
     expect(res.body.id).toBe(testTopicId);
     expect(res.body.name).toBe(`Test Topic ${timestamp}`);
-    expect(Array.isArray(res.body.posts)).toBe(true);
   });
 
   it("should return 400 for non-existent topic", async () => {

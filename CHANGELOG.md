@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] [3.0.0]
+## [3.0.0] - 2026-07-27
 
 ### Added
 
@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Profile photo upload feature using Cloudinary
 - DELETE endpoint for removing profile photos
 - Signed Double Submit Cookie CSRF protection
+- AI Moderation middleware
 
 ### Fixed
 
@@ -23,6 +24,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - JWT refresh tokens
 - Account Recovery (forgot password feature)
 - Skills Case Normalization
+- GET topic by ID endpoint
 
 ## [2.0.0] - 2026-06-29
 

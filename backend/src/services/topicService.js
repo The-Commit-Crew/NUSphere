@@ -20,25 +20,6 @@ export const getTopicByIdService = async (topicId) => {
   const parsedTopicId = parseInt(topicId);
   const topic = await prisma.topic.findUnique({
     where: { id: parsedTopicId },
-    include: {
-      posts: {
-        include: {
-          author: {
-            select: {
-              username: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
-          _count: {
-            select: {
-              comments: true,
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-    },
   });
 
   if (!topic) {

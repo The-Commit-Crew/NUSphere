@@ -26,8 +26,8 @@ router.get("/", getAllTopics);
  * @swagger
  * /api/topics/{id}:
  *   get:
- *     summary: Get a topic by ID with its posts
- *     description: Returns a single topic along with all posts under it, ordered newest first. Each post includes the author's username, firstName, and lastName.
+ *     summary: Get a topic by ID
+ *     description: Returns a single topic's details by its ID.
  *     tags: [Topics]
  *     parameters:
  *       - in: path
@@ -43,7 +43,7 @@ router.get("/", getAllTopics);
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/TopicWithPosts'
+ *               $ref: '#/components/schemas/TopicById'
  *       400:
  *         description: Topic not found
  *         content:
