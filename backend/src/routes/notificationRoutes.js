@@ -25,12 +25,24 @@ const router = Router();
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Notification'
- *       401:
- *         description: Access denied. No token provided.
- *       403:
- *         description: Invalid or expired token.
  *       400:
  *         description: Bad request or database error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Access denied. No token provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Invalid or expired token.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get("/", authenticateToken, getUserNotifications);
 
@@ -59,10 +71,22 @@ router.get("/", authenticateToken, getUserNotifications);
  *               $ref: '#/components/schemas/Notification'
  *       400:
  *         description: Bad request, notification not found, or user unauthorized.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       401:
  *         description: Access denied. No token provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       403:
  *         description: Invalid or expired token.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.patch("/:id/read", authenticateToken, markNotificationAsRead);
 

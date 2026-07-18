@@ -1,5 +1,6 @@
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { moderateContent } from "../middleware/contentModeration.js";
+import { moderationLimiter } from "../middleware/rateLimiter.js";
 import {
   updateComment,
   deleteComment,
@@ -57,6 +58,12 @@ const router = Router();
  *               oneOf:
  *                 - $ref: '#/components/schemas/Error'
  *                 - $ref: '#/components/schemas/ModerationError'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  *       401:
  *         description: Access denied. No token provided.
  *         content:
@@ -76,7 +83,13 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put("/:id", authenticateToken, moderateContent, updateComment);
+router.put(
+  "/:id",
+  authenticateToken,
+  moderationLimiter,
+  moderateContent,
+  updateComment,
+);
 
 /**
  * @swagger
@@ -117,7 +130,7 @@ router.put("/:id", authenticateToken, moderateContent, updateComment);
  *       403:
  *         description: Invalid or expired token.
  *         content:
- *           application/hello:
+ *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */

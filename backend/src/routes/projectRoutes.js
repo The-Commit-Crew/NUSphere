@@ -1,5 +1,6 @@
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { moderateContent } from "../middleware/contentModeration.js";
+import { moderationLimiter } from "../middleware/rateLimiter.js";
 import {
   createProject,
   getAllProjects,
@@ -138,6 +139,12 @@ router.get("/:id", getProjectById);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  *       500:
  *         description: Internal server error or content moderation failure
  *         content:
@@ -145,7 +152,13 @@ router.get("/:id", getProjectById);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/", authenticateToken, moderateContent, createProject);
+router.post(
+  "/",
+  authenticateToken,
+  moderationLimiter,
+  moderateContent,
+  createProject,
+);
 
 /**
  * @swagger
@@ -221,6 +234,12 @@ router.post("/", authenticateToken, moderateContent, createProject);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  *       500:
  *         description: Internal server error or content moderation failure
  *         content:
@@ -228,7 +247,13 @@ router.post("/", authenticateToken, moderateContent, createProject);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put("/:id", authenticateToken, moderateContent, updateProject);
+router.put(
+  "/:id",
+  authenticateToken,
+  moderationLimiter,
+  moderateContent,
+  updateProject,
+);
 
 /**
  * @swagger
@@ -293,6 +318,12 @@ router.put("/:id", authenticateToken, moderateContent, updateProject);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  *       500:
  *         description: Internal server error or content moderation failure
  *         content:
@@ -300,7 +331,13 @@ router.put("/:id", authenticateToken, moderateContent, updateProject);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/:id/apply", authenticateToken, moderateContent, applyToProject);
+router.post(
+  "/:id/apply",
+  authenticateToken,
+  moderationLimiter,
+  moderateContent,
+  applyToProject,
+);
 
 /**
  * @swagger

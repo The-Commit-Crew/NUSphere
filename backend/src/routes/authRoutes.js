@@ -11,6 +11,7 @@ import {
 } from "../controllers/authController.js";
 import { Router } from "express";
 import { authenticateToken } from "../middleware/authMiddleware.js";
+import { authLimiter } from "../middleware/rateLimiter.js";
 import { generateCsrfToken } from "../config/csrf.js";
 
 const router = Router();
@@ -48,8 +49,15 @@ const router = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+
  */
-router.post("/register", registerUser);
+router.post("/register", authLimiter, registerUser);
 
 /**
  * @swagger
@@ -79,8 +87,15 @@ router.post("/register", registerUser);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+
  */
-router.post("/login", loginUser);
+router.post("/login", authLimiter, loginUser);
 
 /**
  * @swagger
@@ -113,8 +128,15 @@ router.post("/login", loginUser);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+
  */
-router.post("/verify-otp", verifyOtp);
+router.post("/verify-otp", authLimiter, verifyOtp);
 
 /**
  * @swagger
@@ -146,8 +168,15 @@ router.post("/verify-otp", verifyOtp);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+
  */
-router.post("/resend-otp", resendOtp);
+router.post("/resend-otp", authLimiter, resendOtp);
 
 /**
  * @swagger
@@ -297,8 +326,15 @@ router.post("/logout-all", authenticateToken, logoutOfAllDevices);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+
  */
-router.post("/forgot-password", requestPasswordReset);
+router.post("/forgot-password", authLimiter, requestPasswordReset);
 
 /**
  * @swagger
