@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - AI Moderation middleware
 - Intelligent Duplicate Detection
 - Create Topic endpoint
+- API rate limiting with Redis
 
 ### Fixed
 

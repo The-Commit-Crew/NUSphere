@@ -19,6 +19,16 @@ const options = {
         description: "Production server",
       },
     ],
+    tags: [
+      { name: "Auth", description: "Authentication and account management" },
+      { name: "Users", description: "User profiles and settings" },
+      { name: "Topics", description: "Discussion categories" },
+      { name: "Posts", description: "Community posts" },
+      { name: "Comments", description: "Post comments and replies" },
+      { name: "Projects", description: "Collaboration and research projects" },
+      { name: "Bookmarks", description: "Saved posts" },
+      { name: "Notifications", description: "User notifications" }
+    ],
     components: {
       securitySchemes: {
         cookieAuth: {
@@ -504,6 +514,20 @@ const options = {
           type: "object",
           properties: {
             message: { type: "string", example: "Something went wrong" },
+          },
+        },
+
+        RateLimitError: {
+          type: "object",
+          properties: {
+            message: {
+              type: "string",
+              example: "Too many requests, please try again later.",
+            },
+            retryAfter: {
+              type: "integer",
+              example: 60,
+            },
           },
         },
 

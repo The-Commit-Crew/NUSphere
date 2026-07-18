@@ -15,6 +15,11 @@ import {
   createComment,
   getPostComments,
 } from "../controllers/commentController.js";
+import {
+  aiDailyLimiter,
+  aiLimiter,
+  moderationLimiter,
+} from "../middleware/rateLimiter.js";
 import { Router } from "express";
 
 const router = Router();
@@ -61,6 +66,12 @@ const router = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  *       500:
  *         description: Internal server error or content moderation failure
  *         content:
@@ -68,7 +79,13 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/", authenticateToken, moderateContent, createPost);
+router.post(
+  "/",
+  authenticateToken,
+  moderationLimiter,
+  moderateContent,
+  createPost,
+);
 
 /**
  * @swagger
@@ -147,6 +164,12 @@ router.get("/", getAllPosts);
  *                         format: float
  *                         description: Semantic similarity score (1.0 is a perfect match)
  *                         example: 0.88
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  *       500:
  *         description: Internal server error (e.g., AI embedding generation failed)
  *         content:
@@ -154,7 +177,7 @@ router.get("/", getAllPosts);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/check-duplicates", checkDuplicates);
+router.post("/check-duplicates", aiDailyLimiter, aiLimiter, checkDuplicates);
 
 /**
  * @swagger
@@ -430,6 +453,12 @@ router.get("/:id/comments", getPostComments);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  *       500:
  *         description: Internal server error or content moderation failure
  *         content:
@@ -437,6 +466,12 @@ router.get("/:id/comments", getPostComments);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/:id/comments", authenticateToken, moderateContent, createComment);
+router.post(
+  "/:id/comments",
+  authenticateToken,
+  moderationLimiter,
+  moderateContent,
+  createComment,
+);
 
 export default router;

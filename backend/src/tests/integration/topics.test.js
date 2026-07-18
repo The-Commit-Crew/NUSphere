@@ -2,7 +2,6 @@ import { describe, it, beforeAll, afterAll, expect } from "@jest/globals";
 import request from "supertest";
 import app from "../../app.js";
 import prisma from "../../config/prisma.js";
-import * as openaiHelper from "../../utils/openaiHelper.js";
 import { loginAndGetCookies } from "./testUtils.js";
 
 const timestamp = Date.now();

@@ -1,5 +1,3 @@
-
-
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -8,7 +6,7 @@ import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger.js";
 import { doubleCsrfProtection } from "./config/csrf.js";
 import { globalErrorHandler } from "./middleware/errorHandler.js";
-
+import { globalLimiter } from "./middleware/rateLimiter.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import topicRoutes from "./routes/topicRoutes.js";
@@ -22,6 +20,7 @@ import bookmarkRoutes from "./routes/bookmarkRoutes.js";
 import "./services/notificationService.js";
 
 const app = express();
+app.set("trust proxy", 1);
 
 export const allowedOrigins = [
   "http://localhost:5173",
@@ -43,6 +42,7 @@ app.use(
     allowedHeaders: ["Content-Type", "x-csrf-token"],
   }),
 );
+app.use(globalLimiter);
 app.use(express.json());
 app.use(cookieParser());
 app.use(doubleCsrfProtection);

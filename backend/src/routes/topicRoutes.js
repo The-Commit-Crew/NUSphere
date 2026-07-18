@@ -6,6 +6,7 @@ import {
 import { Router } from "express";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { moderateContent } from "../middleware/contentModeration.js";
+import { moderationLimiter } from "../middleware/rateLimiter.js";
 
 const router = Router();
 
@@ -113,6 +114,12 @@ router.get("/", getAllTopics);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  *       500:
  *         description: Internal server error or content moderation failure
  *         content:
@@ -120,7 +127,13 @@ router.get("/", getAllTopics);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/", authenticateToken, moderateContent, createTopic);
+router.post(
+  "/",
+  authenticateToken,
+  moderationLimiter,
+  moderateContent,
+  createTopic,
+);
 
 /**
  * @swagger
