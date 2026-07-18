@@ -2,6 +2,7 @@ import { describe, it, beforeAll, afterAll, expect } from "@jest/globals";
 import request from "supertest";
 import { loginAndGetCookies } from "./testUtils.js";
 import app from "../../app.js";
+import redisClient from "../../config/redis.js";
 import prisma from "../../config/prisma.js";
 
 const timestamp = Date.now();
@@ -65,6 +66,7 @@ afterAll(async () => {
   await prisma.topic.deleteMany({ where: { id: testTopicId } });
   await prisma.user.deleteMany({ where: { id: testUserId } });
   await prisma.$disconnect();
+  await redisClient.quit();
 }, 30000);
 
 describe("POST /api/bookmarks/:id", () => {

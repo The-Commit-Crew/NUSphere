@@ -2,6 +2,7 @@ import { describe, it, beforeAll, afterAll, expect } from "@jest/globals";
 import request from "supertest";
 import { loginAndGetCookies } from "./testUtils.js";
 import app from "../../app.js";
+import redisClient from "../../config/redis.js";
 import prisma from "../../config/prisma.js";
 
 const timestamp = Date.now();
@@ -69,6 +70,7 @@ afterAll(async () => {
     where: { id: { in: [ownerId, guestId] } },
   });
   await prisma.$disconnect();
+  await redisClient.quit();
 }, 30000);
 
 describe("PUT /api/users/me", () => {

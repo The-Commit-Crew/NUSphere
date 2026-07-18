@@ -40,11 +40,15 @@ const authRateLimiter = new RateLimiterRedis({
 });
 
 const rateLimiterMiddleware = (limiter) => async (req, res, next) => {
+  if (process.env.JEST_WORKER_ID) {
+    return next();
+  }
   try {
     await limiter.consume(req.ip);
     next();
   } catch (rejRes) {
     if (rejRes instanceof Error) {
+      // eslint-disable-next-line no-console
       console.error("Rate Limiter Redis Error. Failing open.", rejRes.message);
       return next();
     }

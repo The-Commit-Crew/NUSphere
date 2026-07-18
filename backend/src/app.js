@@ -45,7 +45,7 @@ app.use(
 app.use(globalLimiter);
 app.use(express.json());
 app.use(cookieParser());
-// app.use(doubleCsrfProtection);
+app.use(doubleCsrfProtection);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

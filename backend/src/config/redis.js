@@ -7,6 +7,7 @@ const redisClient = new Redis(process.env.REDIS_URL, {
 });
 
 redisClient.on("error", (error) => {
+  // eslint-disable-next-line no-console
   console.error("Redis connection error:", error);
 });
 
