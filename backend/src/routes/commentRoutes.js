@@ -1,4 +1,5 @@
 import { authenticateToken } from "../middleware/authMiddleware.js";
+import { moderateContent } from "../middleware/contentModeration.js";
 import {
   updateComment,
   deleteComment,
@@ -49,11 +50,13 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/Comment'
  *       400:
- *         description: Validation error, comment not found, or user is not the author
+ *         description: Validation error, comment not found, user is not the author, or content flagged by moderation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
  *       401:
  *         description: Access denied. No token provided.
  *         content:
@@ -66,8 +69,14 @@ const router = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.put("/:id", authenticateToken, updateComment);
+router.put("/:id", authenticateToken, moderateContent, updateComment);
 
 /**
  * @swagger

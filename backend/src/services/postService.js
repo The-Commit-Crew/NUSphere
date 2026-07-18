@@ -6,6 +6,7 @@ import {
 } from "../validators/postValidator.js";
 import notificationEmitter from "../utils/notificationEmitter.js";
 import { extractMentions } from "../utils/mentionParser.js";
+import { generateEmbedding } from "../utils/openaiHelper.js";
 
 export const createPostService = async (
   userId,
@@ -30,6 +31,15 @@ export const createPostService = async (
     throw new Error("Topic not found");
   }
 
+  const combinedText = `Title: ${title}\nContent: ${content}`;
+  let vectorString = null;
+  try {
+    const vectorArray = await generateEmbedding(combinedText);
+    vectorString = `[${vectorArray.join(",")}]`;
+  } catch {
+    // If it fails, vectorString just remains null.
+  }
+
   const post = await prisma.post.create({
     data: {
       title,
@@ -48,6 +58,14 @@ export const createPostService = async (
       _count: { select: { comments: true } },
     },
   });
+  if (vectorString) {
+    await prisma.$executeRaw`
+  UPDATE "Post"
+  SET embedding = ${vectorString}::vector
+  where id = ${post.id}
+  `;
+  }
+
   const mentionedUsernames = extractMentions(content);
   if (mentionedUsernames.length > 0) {
     const mentionedUsers = await prisma.user.findMany({
@@ -342,4 +360,23 @@ export const deletePostService = async (postId, userId) => {
   return {
     message: "Post deleted successfully",
   };
+};
+
+export const checkDuplicatesService = async (title, content) => {
+  const combinedText = `Title: ${title || ""}\nContent: ${content || ""}`;
+  try {
+    const vectorArray = await generateEmbedding(combinedText);
+    const vectorString = `[${vectorArray.join(",")}]`;
+    const similarPosts = await prisma.$queryRaw`
+    SELECT id, title, content,
+    1 - (embedding <=> ${vectorString}::vector) as similarity
+    FROM "Post"
+    WHERE 1 - (embedding <=> ${vectorString}::vector) > 0.75
+    ORDER BY (embedding <=> ${vectorString}::vector) ASC
+    LIMIT 3
+    `;
+    return similarPosts;
+  } catch (error) {
+    throw new Error(error.message, { cause: error });
+  }
 };

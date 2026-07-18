@@ -1,4 +1,5 @@
 import { authenticateToken } from "../middleware/authMiddleware.js";
+import { moderateContent } from "../middleware/contentModeration.js";
 import {
   createProject,
   getAllProjects,
@@ -118,11 +119,13 @@ router.get("/:id", getProjectById);
  *             schema:
  *               $ref: '#/components/schemas/Project'
  *       400:
- *         description: Validation error
+ *         description: Validation error or content flagged by moderation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
  *       401:
  *         description: No token provided
  *         content:
@@ -135,8 +138,14 @@ router.get("/:id", getProjectById);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.post("/", authenticateToken, createProject);
+router.post("/", authenticateToken, moderateContent, createProject);
 
 /**
  * @swagger
@@ -193,11 +202,13 @@ router.post("/", authenticateToken, createProject);
  *             schema:
  *               $ref: '#/components/schemas/Project'
  *       400:
- *         description: Validation error or project not found
+ *         description: Validation error, project not found, or content flagged by moderation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
  *       401:
  *         description: No token provided
  *         content:
@@ -210,8 +221,14 @@ router.post("/", authenticateToken, createProject);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.put("/:id", authenticateToken, updateProject);
+router.put("/:id", authenticateToken, moderateContent, updateProject);
 
 /**
  * @swagger
@@ -257,11 +274,13 @@ router.put("/:id", authenticateToken, updateProject);
  *                   type: string
  *                   example: "Project application successful"
  *       400:
- *         description: Project not found, not open, or user applying to own project
+ *         description: Project not found, not open, user applying to own project, or content flagged by moderation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
  *       401:
  *         description: No token provided
  *         content:
@@ -274,8 +293,14 @@ router.put("/:id", authenticateToken, updateProject);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.post("/:id/apply", authenticateToken, applyToProject);
+router.post("/:id/apply", authenticateToken, moderateContent, applyToProject);
 
 /**
  * @swagger

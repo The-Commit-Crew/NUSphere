@@ -39,13 +39,13 @@ const seed = async () => {
         username: "nusphere_admin",
         password,
         isVerified: true,
-      }
+      },
     });
 
     for (const topic of createdTopics) {
       const postTitle = `Welcome to ${topic.name}!`;
       let post = await prisma.post.findFirst({
-        where: { title: postTitle, topicId: topic.id }
+        where: { title: postTitle, topicId: topic.id },
       });
 
       if (!post) {
@@ -55,22 +55,25 @@ const seed = async () => {
             content: `This is a sample post to kick off the ${topic.name} topic. Feel free to start discussing!`,
             topicId: topic.id,
             authorId: sampleUser.id,
-            isAnonymous: false
-          }
+            isAnonymous: false,
+          },
         });
 
         await prisma.comment.create({
           data: {
-            content: "Great to see this topic created! Looking forward to the discussions.",
+            content:
+              "Great to see this topic created! Looking forward to the discussions.",
             postId: post.id,
             authorId: sampleUser.id,
-            isAnonymous: false
-          }
+            isAnonymous: false,
+          },
         });
       }
     }
+    // eslint-disable-next-line no-console
     console.log("Sample posts and comments seeded successfully");
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Error during seeding:", error);
   } finally {
     await prisma.$disconnect();

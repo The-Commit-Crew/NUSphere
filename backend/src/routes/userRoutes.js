@@ -3,6 +3,7 @@ import {
   authenticateToken,
   optionalAuth,
 } from "../middleware/authMiddleware.js";
+import { moderateContent } from "../middleware/contentModeration.js";
 import { uploadProfilePic } from "../middleware/uploadMiddleware.js";
 import {
   updateUserProfile,
@@ -74,11 +75,13 @@ router.get("/me/dashboard", authenticateToken, getUserDashboard);
  *             schema:
  *               $ref: '#/components/schemas/User'
  *       400:
- *         description: Validation error
+ *         description: Validation error or content flagged by moderation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
  *       401:
  *         description: Unauthorized - No token provided
  *         content:
@@ -91,8 +94,14 @@ router.get("/me/dashboard", authenticateToken, getUserDashboard);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.put("/me", authenticateToken, updateUserProfile);
+router.put("/me", authenticateToken, moderateContent, updateUserProfile);
 
 /**
  * @swagger
