@@ -93,7 +93,7 @@ export const createCommentService = async (
   return newComment;
 };
 
-export const getPostCommentsService = async (postId) => {
+export const getPostCommentsService = async (postId, userId) => {
   const comments = await prisma.comment.findMany({
     where: { postId },
     orderBy: { createdAt: "asc" },
@@ -113,6 +113,8 @@ export const getPostCommentsService = async (postId) => {
   comments.forEach((comment) => {
     comment.replies = [];
     commentMap[comment.id] = comment;
+    comment.isMine = userId === comment.authorId;
+    delete comment.authorId;
   });
 
   comments.forEach((comment) => {

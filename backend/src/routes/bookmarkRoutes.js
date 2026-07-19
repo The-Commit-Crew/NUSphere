@@ -29,12 +29,7 @@ const router = Router();
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 bookmarkStatus:
- *                   type: boolean
- *                   description: True if bookmarked, false if bookmark was removed
- *                   example: true
+ *               $ref: '#/components/schemas/BookmarkResponse'
  *       400:
  *         description: Post not found
  *         content:

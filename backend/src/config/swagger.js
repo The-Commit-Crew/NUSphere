@@ -371,6 +371,7 @@ const options = {
             id: { type: "integer", example: 1 },
             content: { type: "string", example: "This is a great point!" },
             isAnonymous: { type: "boolean", example: false },
+            isMine: { type: "boolean", example: true },
             author: {
               type: "object",
               properties: {
@@ -616,6 +617,255 @@ const options = {
               },
             },
           },
+        },
+        Skill: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 1 },
+            name: { type: "string", example: "REACT" },
+          },
+        },
+        SuccessResponse: {
+          type: "object",
+          properties: {
+            message: { type: "string", example: "Operation successful" },
+          },
+        },
+        CreateProjectRequest: {
+          type: "object",
+          required: ["title", "description", "skills"],
+          properties: {
+            title: {
+              type: "string",
+              minLength: 5,
+              maxLength: 100,
+              example: "NLP Research Assistant",
+            },
+            description: {
+              type: "string",
+              minLength: 20,
+              example: "Looking for a student to help with sentiment analysis research.",
+            },
+            skills: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 1,
+              example: ["Python", "NLP", "Machine Learning"],
+            },
+          },
+        },
+        UpdateProjectRequest: {
+          type: "object",
+          properties: {
+            title: {
+              type: "string",
+              minLength: 5,
+              maxLength: 100,
+              example: "Updated Project Title",
+            },
+            description: {
+              type: "string",
+              minLength: 20,
+              example: "Updated description with more details about the project.",
+            },
+            status: {
+              type: "string",
+              enum: ["OPEN", "IN_PROGRESS", "COMPLETED"],
+              example: "IN_PROGRESS",
+            },
+            skills: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 1,
+              example: ["Python", "React"],
+            },
+          },
+        },
+        ApplyToProjectRequest: {
+          type: "object",
+          properties: {
+            message: {
+              type: "string",
+              maxLength: 500,
+              description: "Optional message to the project author",
+              example: "I have 2 years of experience in NLP and would love to contribute.",
+            },
+          },
+        },
+        UpdateApplicationStatusRequest: {
+          type: "object",
+          required: ["status"],
+          properties: {
+            status: {
+              type: "string",
+              enum: ["ACCEPTED", "REJECTED"],
+              example: "ACCEPTED",
+            },
+          },
+        },
+        VoteRequest: {
+          type: "object",
+          required: ["type"],
+          properties: {
+            type: {
+              type: "string",
+              enum: ["UP", "DOWN"],
+              example: "UP",
+            },
+          },
+        },
+        CsrfTokenResponse: {
+          type: "object",
+          properties: {
+            csrfToken: {
+              type: "string",
+              description: "The token string to attach to the x-csrf-token header.",
+            },
+          },
+        },
+        BookmarkRequest: {
+          type: "object",
+          required: ["postId"],
+          properties: {
+            postId: { type: "integer", example: 1 },
+          },
+        },
+        BookmarkStatusResponse: {
+          type: "object",
+          properties: {
+            hasBookmarked: { type: "boolean", example: true },
+          },
+        },
+        CreateCommentRequest: {
+          type: "object",
+          required: ["content"],
+          properties: {
+            content: {
+              type: "string",
+              example: "This is a great post!",
+              minLength: 1,
+              maxLength: 1000,
+            },
+            isAnonymous: { type: "boolean", example: false, default: false },
+            parentId: {
+              type: "integer",
+              nullable: true,
+              description: "The ID of the comment being replied to. Omit or set to null for top-level comments.",
+              example: null
+            }
+          },
+        },
+        UpdateCommentRequest: {
+          type: "object",
+          required: ["content"],
+          properties: {
+            content: { type: "string", example: "Updated comment content." },
+          },
+        },
+        UpdatePostRequest: {
+          type: "object",
+          properties: {
+            title: { type: "string", example: "Updated title" },
+            content: { type: "string", example: "Updated content" },
+            topicId: { type: "integer", example: 2 },
+          },
+        },
+        ProjectWithDetails: {
+          allOf: [
+            { $ref: "#/components/schemas/Project" },
+            {
+              type: "object",
+              properties: {
+                applicationCount: {
+                  type: "integer",
+                  description: "Total number of applications received",
+                  example: 5,
+                },
+              },
+            },
+          ],
+        },
+        CreateTopicRequest: {
+          type: "object",
+          required: ["name", "description"],
+          properties: {
+            name: { type: "string", description: "The name of the proposed topic", example: "Campus Housing" },
+            description: { type: "string", description: "A detailed description of what the topic covers", example: "Discussions regarding dorms, RCs, and off-campus housing." },
+          },
+        },
+        CreateTopicResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            isDuplicate: { type: "boolean", example: false },
+            topic: { $ref: "#/components/schemas/Topic" },
+          },
+        },
+        DuplicateTopicResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: false },
+            isDuplicate: { type: "boolean", example: true },
+            existingTopicId: { type: "integer", example: 4 },
+            reason: { type: "string", example: "This topic overlaps significantly with 'Housing'." },
+          },
+        },
+        UploadProfileImageRequest: {
+          type: "object",
+          properties: {
+            profileImage: {
+              type: "string",
+              format: "binary",
+              description: "The image file to upload (jpg, jpeg, png, webp). Max size 5MB.",
+            },
+          },
+        },
+        SimilarPostsResponse: {
+          type: "object",
+          properties: {
+            similarPosts: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "integer", example: 42 },
+                  title: { type: "string", example: "CS2040C workload is crazy" },
+                  content: { type: "string", example: "Does anyone else find the data structures hard?" },
+                  similarity: { type: "number", format: "float", example: 0.85 },
+                },
+              },
+            },
+          },
+        },
+        VoteResponse: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 42 },
+            upvoteCount: { type: "integer", example: 15 },
+            downvoteCount: { type: "integer", example: 3 },
+          },
+        },
+        PostWithContext: {
+          allOf: [
+            { $ref: "#/components/schemas/PostWithDetails" },
+            {
+              type: "object",
+              properties: {
+                userVoteStatus: {
+                  type: "string",
+                  nullable: true,
+                  enum: ["UP", "DOWN"],
+                  description: "The current user's vote on this post. null if unauthenticated or not yet voted.",
+                  example: "UP",
+                },
+                bookmarkStatus: {
+                  type: "boolean",
+                  description: "True if the user has bookmarked this post.",
+                  example: false,
+                },
+              },
+            },
+          ],
         },
         Notification: {
           type: "object",

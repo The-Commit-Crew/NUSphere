@@ -6,6 +6,8 @@ import {
   applyToProjectService,
   getProjectApplicationsService,
   updateApplicationStatusService,
+  getAllSkillsService,
+  searchProjectsService,
 } from "../services/projectService.js";
 
 export const createProject = async (req, res) => {
@@ -85,6 +87,24 @@ export const updateApplicationStatus = async (req, res) => {
       req.user.userId,
       req.body,
     );
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const getAllSkills = async (req, res) => {
+  try {
+    const result = await getAllSkillsService();
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const searchProjects = async (req, res) => {
+  try {
+    const result = await searchProjectsService(req.query, req.user?.userId);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });

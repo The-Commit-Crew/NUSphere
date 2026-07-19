@@ -368,3 +368,34 @@ describe("PUT /api/projects/applications/:appId", () => {
     expect(res.body.message).toBe("Application status updated successfully");
   });
 });
+
+describe("GET /api/projects/skills", () => {
+  it("should return 200 and a list of unique skills", async () => {
+    const res = await request(app).get("/api/projects/skills");
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+});
+
+describe("GET /api/projects/search", () => {
+  it("should return 200 and search results", async () => {
+    const res = await request(app).get("/api/projects/search?q=Baseline&page=1&limit=5");
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("should filter by skills and sort correctly", async () => {
+    const res = await request(app).get("/api/projects/search?sortBy=newest&skills=React");
+    
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("should return 400 for invalid query parameters", async () => {
+    const res = await request(app).get("/api/projects/search?limit=100");
+    
+    expect(res.status).toBe(400);
+  });
+});

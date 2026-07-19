@@ -46,54 +46,20 @@ router.get("/", getAllTopics);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *               - description
- *             properties:
- *               name:
- *                 type: string
- *                 description: The name of the proposed topic
- *                 example: "Campus Housing"
- *               description:
- *                 type: string
- *                 description: A detailed description of what the topic covers
- *                 example: "Discussions regarding dorms, RCs, and off-campus housing."
+ *             $ref: '#/components/schemas/CreateTopicRequest'
  *     responses:
  *       201:
  *         description: Topic created successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 isDuplicate:
- *                   type: boolean
- *                   example: false
- *                 topic:
- *                   $ref: '#/components/schemas/Topic'
+ *               $ref: '#/components/schemas/CreateTopicResponse'
  *       200:
  *         description: Topic creation blocked by AI due to subsumption/duplication
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 isDuplicate:
- *                   type: boolean
- *                   example: true
- *                 existingTopicId:
- *                   type: integer
- *                   example: 4
- *                 reason:
- *                   type: string
- *                   example: "Dorms is subsumed by the existing Campus Housing topic."
+ *               $ref: '#/components/schemas/DuplicateTopicResponse'
  *       400:
  *         description: Validation error or content flagged by moderation
  *         content:

@@ -65,3 +65,44 @@ export const updateProjectSchema = Joi.object({
       "string.base": "Status must be a valid text string",
     }),
 });
+
+export const searchProjectQuerySchema = Joi.object({
+  q: Joi.string().allow("").trim().optional().messages({
+    "string.base": "Query must be a valid string",
+  }),
+  skills: Joi.string().allow("").trim().optional().messages({
+    "string.base": "Skills query must be a valid string",
+  }),
+  skillMatch: Joi.string()
+    .valid("any", "all")
+    .optional()
+    .default("any")
+    .messages({
+      "string.base": "skillMatch must be a valid string",
+      "any.only": "skillMatch must be exactly 'any' or 'all'",
+    }),
+
+  sortBy: Joi.string()
+    .valid("newest", "recommended")
+    .optional()
+    .default("newest")
+    .messages({
+      "any.only": "sortBy must be 'newest' or 'recommended'",
+    }),
+  page: Joi.number().integer().positive().default(1).optional().messages({
+    "number.base": "Page number is required",
+    "number.integer": "Invalid page number",
+    "number.positive": "Invalid page number",
+  }),
+  limit: Joi.number()
+    .integer()
+    .positive()
+    .default(10)
+    .max(50)
+    .optional()
+    .messages({
+      "number.base": "Limit is required",
+      "number.integer": "Invalid limit",
+      "number.positive": "Invalid limit",
+    }),
+});

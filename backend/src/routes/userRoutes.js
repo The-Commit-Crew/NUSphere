@@ -163,12 +163,7 @@ router.get("/:username", optionalAuth, getUserProfile);
  *       content:
  *         multipart/form-data:
  *           schema:
- *             type: object
- *             properties:
- *               profileImage:
- *                 type: string
- *                 format: binary
- *                 description: The image file to upload (jpg, jpeg, png, webp). Max size 5MB.
+ *             $ref: '#/components/schemas/UploadProfileImageRequest'
  *     responses:
  *       200:
  *         description: Profile photo successfully updated.
