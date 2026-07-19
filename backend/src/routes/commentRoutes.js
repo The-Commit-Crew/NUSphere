@@ -31,18 +31,7 @@ const router = Router();
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - content
- *             properties:
- *               content:
- *                 type: string
- *                 description: The updated text content of the comment (max 1000 characters)
- *                 example: "Actually, I changed my mind. This is the updated comment!"
- *               isAnonymous:
- *                 type: boolean
- *                 nullable: true
- *                 example: false
+ *             $ref: '#/components/schemas/UpdateCommentRequest'
  *     responses:
  *       200:
  *         description: Comment updated successfully

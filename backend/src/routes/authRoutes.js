@@ -35,14 +35,7 @@ const router = Router();
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 action:
- *                   type: string
- *                   example: otp_required
- *                 message:
- *                   type: string
- *                   example: OTP sent to your NUS email
+ *               $ref: '#/components/schemas/AuthResponse'
  *       400:
  *         description: Validation error or email/username already taken
  *         content:
@@ -157,11 +150,7 @@ router.post("/verify-otp", authLimiter, verifyOtp);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: OTP resent to your NUS email
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
  *         description: User not found or already verified
  *         content:
@@ -196,11 +185,7 @@ router.post("/resend-otp", authLimiter, resendOtp);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: New access and refresh tokens successfully generated
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
  *         description: Refresh token missing, expired, or revoked
  *         content:
@@ -228,11 +213,7 @@ router.post("/refresh", refreshAccessToken);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Logged out successfully
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
  *         description: Something went wrong during logout
  *         content:
@@ -262,11 +243,7 @@ router.post("/logout", logout);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Logged out of all devices successfully
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
  *         description: Something went wrong during global logout
  *         content:
@@ -278,21 +255,13 @@ router.post("/logout", logout);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Access denied. No token provided
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       403:
  *         description: Invalid or expired token (from middleware)
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Invalid or expired token
+ *               $ref: '#/components/schemas/SuccessResponse'
  */
 router.post("/logout-all", authenticateToken, logoutOfAllDevices);
 
@@ -315,11 +284,7 @@ router.post("/logout-all", authenticateToken, logoutOfAllDevices);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: If an account exists, a reset link has been sent.
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
  *         description: Validation error
  *         content:
@@ -361,11 +326,7 @@ router.post("/forgot-password", authLimiter, requestPasswordReset);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Password updated successfully
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
  *         description: Token expired, invalid, or validation error
  *         content:
@@ -395,11 +356,7 @@ router.patch("/reset-password/:token", resetPassword);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 csrfToken:
- *                   type: string
- *                   description: The token string to attach to the x-csrf-token header.
+ *               $ref: '#/components/schemas/CsrfTokenResponse'
  */
 router.get("/csrf-token", (req, res) => {
   const token = generateCsrfToken(req, res);
