@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 - Fixed issues with fetching posts by ID.
 - Fixed issues with the fetch all posts endpoint.
+- Fixed user mentions not triggering notifications
 
 ## [1.0.0] - 2026-06-01
 
