@@ -3,7 +3,10 @@ import {
   authenticateToken,
   optionalAuth,
 } from "../middleware/authMiddleware.js";
-import { moderateContent } from "../middleware/contentModeration.js";
+import {
+  moderateContent,
+  moderateImageContent,
+} from "../middleware/contentModeration.js";
 import { moderationLimiter } from "../middleware/rateLimiter.js";
 import { uploadProfilePic } from "../middleware/uploadMiddleware.js";
 import {
@@ -177,7 +180,9 @@ router.get("/:username", optionalAuth, getUserProfile);
 router.patch(
   "/me/photo",
   authenticateToken,
+  moderationLimiter,
   uploadProfilePic.single("profileImage"),
+  moderateImageContent,
   updateProfilePhoto,
 );
 
