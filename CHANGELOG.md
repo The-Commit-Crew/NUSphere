@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Added
 
+- Added `security-ci.yml` GitHub Actions workflow for CodeQL, Gitleaks, and NPM Audit scans.
+- Added Husky pre-push git hook for local security checking.
 - Added advanced full-text search (FTS), gravity sorting, and pagination.
 - Added `DELETE` endpoint for removing posts.
 - Added bookmarking functionality to save posts.

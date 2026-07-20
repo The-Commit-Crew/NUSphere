@@ -1,0 +1,26 @@
+{
+  "name": "nusphere",
+  "version": "1.0.0",
+  "description": "[![Backend CI](https://github.com/The-Commit-Crew/NUSphere/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/The-Commit-Crew/NUSphere/actions/workflows/backend-ci.yml) [![Frontend CI](https://github.com/The-Commit-Crew/NUSphere/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/The-Commit-Crew/NUSphere/actions/workflows/frontend-ci.yml) [![Azure Deployment](https://github.com/The-Commit-Crew/NUSphere/actions/workflows/main_nusphere-api.yml/badge.svg)](https://github.com/The-Commit-Crew/NUSphere/actions/workflows/main_nusphere-api.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "security-check": "echo '🛡️ Running Security Checks...' && npm audit --prefix backend --audit-level=critical && npm audit --prefix frontend --audit-level=critical && gitleaks protect -v --staged",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/The-Commit-Crew/NUSphere.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/The-Commit-Crew/NUSphere/issues"
+  },
+  "homepage": "https://github.com/The-Commit-Crew/NUSphere#readme",
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}
