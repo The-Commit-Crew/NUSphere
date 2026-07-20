@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 
 // Matches @ followed by letters, numbers, underscores, or hyphens
-const MENTION_REGEX = /@([a-zA-Z0-9_-]+)/g
+const MENTION_REGEX = /@([a-zA-Z0-9]{3,50})/g;
 
 export function renderWithMentions(text) {
   if (!text) return text
