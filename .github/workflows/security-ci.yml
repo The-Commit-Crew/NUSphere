@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
       - name: Run npm audit in backend
         run: npm audit --audit-level=critical
         working-directory: backend
@@ -24,17 +24,16 @@ jobs:
         working-directory: frontend
 
   secret-scan:
-    name: Gitleaks Secret Scanner
+    name: TruffleHog Secret Scanner
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+      - name: Run TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
   codeql-scan:
     name: CodeQL Security Scan
     runs-on: ubuntu-latest
