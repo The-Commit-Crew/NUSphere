@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import prisma from "./config/prisma.js";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger.js";
+import helmet from "helmet";
 import { doubleCsrfProtection } from "./config/csrf.js";
 import { globalErrorHandler } from "./middleware/errorHandler.js";
 import { globalLimiter } from "./middleware/rateLimiter.js";
@@ -21,6 +22,8 @@ import "./services/notificationService.js";
 
 const app = express();
 app.set("trust proxy", 1);
+
+app.use(helmet({ crossOriginResourcePolicy: false }));
 
 export const allowedOrigins = [
   "http://localhost:5173",
