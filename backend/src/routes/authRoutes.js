@@ -11,6 +11,7 @@ import {
 } from "../controllers/authController.js";
 import { Router } from "express";
 import { authenticateToken } from "../middleware/authMiddleware.js";
+import { authLimiter } from "../middleware/rateLimiter.js";
 import { generateCsrfToken } from "../config/csrf.js";
 
 const router = Router();
@@ -34,22 +35,22 @@ const router = Router();
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 action:
- *                   type: string
- *                   example: otp_required
- *                 message:
- *                   type: string
- *                   example: OTP sent to your NUS email
+ *               $ref: '#/components/schemas/AuthResponse'
  *       400:
  *         description: Validation error or email/username already taken
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+
  */
-router.post("/register", registerUser);
+router.post("/register", authLimiter, registerUser);
 
 /**
  * @swagger
@@ -79,8 +80,15 @@ router.post("/register", registerUser);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+
  */
-router.post("/login", loginUser);
+router.post("/login", authLimiter, loginUser);
 
 /**
  * @swagger
@@ -113,8 +121,15 @@ router.post("/login", loginUser);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+
  */
-router.post("/verify-otp", verifyOtp);
+router.post("/verify-otp", authLimiter, verifyOtp);
 
 /**
  * @swagger
@@ -135,19 +150,22 @@ router.post("/verify-otp", verifyOtp);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: OTP resent to your NUS email
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
  *         description: User not found or already verified
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+
  */
-router.post("/resend-otp", resendOtp);
+router.post("/resend-otp", authLimiter, resendOtp);
 
 /**
  * @swagger
@@ -167,11 +185,7 @@ router.post("/resend-otp", resendOtp);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: New access and refresh tokens successfully generated
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
  *         description: Refresh token missing, expired, or revoked
  *         content:
@@ -199,11 +213,7 @@ router.post("/refresh", refreshAccessToken);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Logged out successfully
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
  *         description: Something went wrong during logout
  *         content:
@@ -233,11 +243,7 @@ router.post("/logout", logout);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Logged out of all devices successfully
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
  *         description: Something went wrong during global logout
  *         content:
@@ -249,21 +255,13 @@ router.post("/logout", logout);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Access denied. No token provided
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       403:
  *         description: Invalid or expired token (from middleware)
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Invalid or expired token
+ *               $ref: '#/components/schemas/SuccessResponse'
  */
 router.post("/logout-all", authenticateToken, logoutOfAllDevices);
 
@@ -286,19 +284,22 @@ router.post("/logout-all", authenticateToken, logoutOfAllDevices);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: If an account exists, a reset link has been sent.
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
  *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+
  */
-router.post("/forgot-password", requestPasswordReset);
+router.post("/forgot-password", authLimiter, requestPasswordReset);
 
 /**
  * @swagger
@@ -325,11 +326,7 @@ router.post("/forgot-password", requestPasswordReset);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Password updated successfully
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
  *         description: Token expired, invalid, or validation error
  *         content:
@@ -359,11 +356,7 @@ router.patch("/reset-password/:token", resetPassword);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 csrfToken:
- *                   type: string
- *                   description: The token string to attach to the x-csrf-token header.
+ *               $ref: '#/components/schemas/CsrfTokenResponse'
  */
 router.get("/csrf-token", (req, res) => {
   const token = generateCsrfToken(req, res);

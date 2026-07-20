@@ -2,17 +2,24 @@ import {
   authenticateToken,
   optionalAuth,
 } from "../middleware/authMiddleware.js";
+import { moderateContent } from "../middleware/contentModeration.js";
 import {
   createPost,
   getPostById,
   castVote,
   getAllPosts,
   deletePost,
+  checkDuplicates,
 } from "../controllers/postController.js";
 import {
   createComment,
   getPostComments,
 } from "../controllers/commentController.js";
+import {
+  aiDailyLimiter,
+  aiLimiter,
+  moderationLimiter,
+} from "../middleware/rateLimiter.js";
 import { Router } from "express";
 
 const router = Router();
@@ -40,11 +47,13 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/PostWithDetails'
  *       400:
- *         description: Validation error or topic not found
+ *         description: Validation error, topic not found, or content flagged by moderation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
  *       401:
  *         description: No token provided
  *         content:
@@ -57,8 +66,26 @@ const router = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.post("/", authenticateToken, createPost);
+router.post(
+  "/",
+  authenticateToken,
+  moderationLimiter,
+  moderateContent,
+  createPost,
+);
 
 /**
  * @swagger
@@ -87,6 +114,73 @@ router.get("/", getAllPosts);
 
 /**
  * @swagger
+ * /api/posts/check-duplicates:
+ *   post:
+ *     summary: Check for semantically similar posts
+ *     description: >
+ *       Evaluates a drafted post's title and content against the database using vector embeddings.
+ *       Returns up to 3 historically similar posts to prevent duplicate questions.
+ *       Does not require authentication, allowing it to run freely while a user types.
+ *     tags: [Posts]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: The drafted title of the post
+ *                 example: "Is CS2040C hard?"
+ *               content:
+ *                 type: string
+ *                 description: The drafted body content of the post
+ *                 example: "I am struggling with the assignments."
+ *     responses:
+ *       200:
+ *         description: Successfully checked for duplicates. Returns an array of similar posts (empty array if none found).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 similarPosts:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 42
+ *                       title:
+ *                         type: string
+ *                         example: "CS2040C workload is crazy"
+ *                       content:
+ *                         type: string
+ *                         example: "Does anyone else find the data structures hard?"
+ *                       similarity:
+ *                         type: number
+ *                         format: float
+ *                         description: Semantic similarity score (1.0 is a perfect match)
+ *                         example: 0.88
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+ *       500:
+ *         description: Internal server error (e.g., AI embedding generation failed)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post("/check-duplicates", aiDailyLimiter, aiLimiter, checkDuplicates);
+
+/**
+ * @swagger
  * /api/posts/{id}:
  *   get:
  *     summary: Get a post by ID
@@ -112,26 +206,7 @@ router.get("/", getAllPosts);
  *         content:
  *           application/json:
  *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/PostWithDetails'
- *                 - type: object
- *                   properties:
- *                     userVoteStatus:
- *                       type: string
- *                       nullable: true
- *                       enum: [UP, DOWN]
- *                       description: >
- *                         The current user's vote on this post.
- *                         null if unauthenticated or not yet voted.
- *                       example: "UP"
- *                     bookmarkStatus:
- *                       type: boolean
- *                       nullable: true
- *                       description: >
- *                         Whether the current user has bookmarked this post.
- *                         null if unauthenticated, true/false if logged in.
- *                       example: true
- *
+  *               $ref: '#/components/schemas/PostWithContext'
  *       400:
  *         description: Post not found
  *         content:
@@ -164,11 +239,7 @@ router.get("/:id", optionalAuth, getPostById);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Post deleted successfully"
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
  *         description: Post not found or user is not authorized to delete it
  *         content:
@@ -195,8 +266,7 @@ router.delete("/:id", authenticateToken, deletePost);
  * /api/posts/{id}/vote:
  *   post:
  *     summary: Cast a vote on a post
- *     description: Upvotes or downvotes a specific post. If the user has already cast the same vote, it acts as a toggle and removes the vote. If they
- *       switch their vote, it updates their choice. Requires a valid JWT token.
+ *     description: Upvotes or downvotes a specific post. If the user has already cast the same vote, it acts as a toggle and removes the vote. If they switch their vote, it updates their choice. Requires a valid JWT token.
  *     tags: [Posts]
  *     security:
  *       - cookieAuth: []
@@ -213,32 +283,14 @@ router.delete("/:id", authenticateToken, deletePost);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - voteType
- *             properties:
- *               voteType:
- *                 type: string
- *                 enum: [UP, DOWN]
- *                 description: The type of vote to cast
- *                 example: "UP"
+ *             $ref: '#/components/schemas/VoteRequest'
  *     responses:
  *       200:
  *         description: Vote processed successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
- *                   example: 42
- *                 upvoteCount:
- *                   type: integer
- *                   example: 15
- *                 downvoteCount:
- *                   type: integer
- *                   example: 3
+ *               $ref: '#/components/schemas/VoteResponse'
  *       400:
  *         description: Validation error or post not found
  *         content:
@@ -265,8 +317,11 @@ router.post("/:id/vote", authenticateToken, castVote);
  * /api/posts/{id}/comments:
  *   get:
  *     summary: Get all comments for a post
- *     description: Retrieves a completely nested tree structure of all comments and replies associated with a specific post.
+ *     description: Retrieves a completely nested tree structure of all comments and replies associated with a specific post. If a valid JWT token is provided, an `isMine` boolean is included to indicate ownership.
  *     tags: [Posts]
+ *     security:
+ *       - cookieAuth: []
+ *       - {}
  *     parameters:
  *       - in: path
  *         name: id
@@ -291,7 +346,7 @@ router.post("/:id/vote", authenticateToken, castVote);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/:id/comments", getPostComments);
+router.get("/:id/comments", optionalAuth, getPostComments);
 
 /**
  * @swagger
@@ -315,23 +370,7 @@ router.get("/:id/comments", getPostComments);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - content
- *             properties:
- *               content:
- *                 type: string
- *                 description: The text content of the comment (max 1000 characters)
- *                 example: "This is a great point!"
- *               parentId:
- *                 type: integer
- *                 nullable: true
- *                 description: The ID of the comment being replied to. Omit or set to null for top-level comments.
- *                 example: null
- *               isAnonymous:
- *                 type: boolean
- *                 nullable: true
- *                 example: false
+ *             $ref: '#/components/schemas/CreateCommentRequest'
  *     responses:
  *       201:
  *         description: Comment created successfully
@@ -340,11 +379,13 @@ router.get("/:id/comments", getPostComments);
  *             schema:
  *               $ref: '#/components/schemas/Comment'
  *       400:
- *         description: Validation error, post not found, or parent comment mismatch
+ *         description: Validation error, post not found, parent comment mismatch, or content flagged by moderation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
  *       401:
  *         description: No token provided
  *         content:
@@ -357,7 +398,25 @@ router.get("/:id/comments", getPostComments);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.post("/:id/comments", authenticateToken, createComment);
+router.post(
+  "/:id/comments",
+  authenticateToken,
+  moderationLimiter,
+  moderateContent,
+  createComment,
+);
 
 export default router;

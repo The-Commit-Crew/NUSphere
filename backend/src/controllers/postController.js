@@ -4,6 +4,7 @@ import {
   castVoteService,
   getAggregatedPostsService,
   deletePostService,
+  checkDuplicatesService,
 } from "../services/postService.js";
 
 export const createPost = async (req, res) => {
@@ -66,5 +67,20 @@ export const deletePost = async (req, res) => {
     res.status(400).json({
       message: error.message,
     });
+  }
+};
+
+export const checkDuplicates = async (req, res) => {
+  try {
+    const { title, content } = req.body;
+    if ((!title && !content) || (title?.length < 5 && content?.length < 10)) {
+      return res.status(200).json({ similarPosts: [] });
+    }
+    const similarPosts = await checkDuplicatesService(title, content);
+    res.status(200).json({ similarPosts });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Duplicate check failed: ", error);
+    res.status(200).json({ similarPosts: [] });
   }
 };

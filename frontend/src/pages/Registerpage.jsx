@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { registerUser } from '../services/Authservice'
+import PasswordInput from '../components/PasswordInput'
 
 function Registerpage() {
   const navigate = useNavigate()
@@ -72,7 +73,7 @@ function Registerpage() {
               <input
                 name="firstName"
                 type="text"
-                placeholder="firstname"
+                placeholder="First Name"
                 value={formData.firstName}
                 onChange={handleChange}
                 required
@@ -87,7 +88,7 @@ function Registerpage() {
               <input
                 name="lastName"
                 type="text"
-                placeholder="lastname"
+                placeholder="Last Name"
                 value={formData.lastName}
                 onChange={handleChange}
                 required
@@ -122,7 +123,7 @@ function Registerpage() {
             <input
               name="username"
               type="text"
-              placeholder="something_nus"
+              placeholder="Username"
               value={formData.username}
               onChange={handleChange}
               required
@@ -130,23 +131,8 @@ function Registerpage() {
               className="px-3 py-2 rounded-lg text-sm outline-none"
             />
           </div>
-
           {/* Password */}
-          <div className="flex flex-col gap-1">
-            <label style={{ color: '#1A1512', fontSize: '13px' }} className="font-medium">
-              Password
-            </label>
-            <input
-              name="password"
-              type="password"
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              style={{ border: '1px solid #E8E0D8', color: '#1A1512', backgroundColor: '#FAFAF8' }}
-              className="px-3 py-2 rounded-lg text-sm outline-none"
-            />
-          </div>
+          <PasswordInput name="password" value={formData.password} onChange={handleChange} />
 
           {/* Submit */}
           <button

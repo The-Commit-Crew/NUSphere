@@ -50,8 +50,12 @@ async function apiFetch(path, options = {}, isRetry = false) {
     }
   }
 
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Request failed')
+const result = await response.json()
+  if (!response.ok) {
+    const err = new Error(result.message || 'Request failed')
+    err.categories = result.categories
+    throw err
+  }
   return result
 }
 
@@ -89,6 +93,24 @@ export async function resendOtp(data) {
 
 export async function logoutUser() {
   return apiFetch('/auth/logout', { method: 'POST' })
+}
+
+//AccRecovery
+
+export async function requestPasswordReset(data) {
+  return apiFetch('/auth/forgot-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}
+
+export async function resetPassword(token, data) {
+  return apiFetch(`/auth/reset-password/${token}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
 }
 
 //Topics
@@ -256,3 +278,4 @@ export async function toggleBookmark(postId) {
 export async function getBookmarkedPosts() {
   return apiFetch('/bookmarks')
 }
+

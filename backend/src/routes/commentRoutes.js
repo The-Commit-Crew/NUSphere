@@ -1,4 +1,6 @@
 import { authenticateToken } from "../middleware/authMiddleware.js";
+import { moderateContent } from "../middleware/contentModeration.js";
+import { moderationLimiter } from "../middleware/rateLimiter.js";
 import {
   updateComment,
   deleteComment,
@@ -29,18 +31,7 @@ const router = Router();
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - content
- *             properties:
- *               content:
- *                 type: string
- *                 description: The updated text content of the comment (max 1000 characters)
- *                 example: "Actually, I changed my mind. This is the updated comment!"
- *               isAnonymous:
- *                 type: boolean
- *                 nullable: true
- *                 example: false
+ *             $ref: '#/components/schemas/UpdateCommentRequest'
  *     responses:
  *       200:
  *         description: Comment updated successfully
@@ -49,11 +40,19 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/Comment'
  *       400:
- *         description: Validation error, comment not found, or user is not the author
+ *         description: Validation error, comment not found, user is not the author, or content flagged by moderation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  *       401:
  *         description: Access denied. No token provided.
  *         content:
@@ -66,8 +65,20 @@ const router = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.put("/:id", authenticateToken, updateComment);
+router.put(
+  "/:id",
+  authenticateToken,
+  moderationLimiter,
+  moderateContent,
+  updateComment,
+);
 
 /**
  * @swagger
@@ -108,7 +119,7 @@ router.put("/:id", authenticateToken, updateComment);
  *       403:
  *         description: Invalid or expired token.
  *         content:
- *           application/hello:
+ *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */

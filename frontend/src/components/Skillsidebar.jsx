@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { formatSkill } from '../utils/formatSkill'
 
 function Skillsidebar({ projects, selectedSkill, onSelectSkill }) {
 
@@ -55,7 +56,7 @@ function Skillsidebar({ projects, selectedSkill, onSelectSkill }) {
                 }
                 className="flex items-center gap-2 px-3 py-2 text-sm text-left hover:opacity-70 rounded-sm"
               >
-                {skillName}
+               {formatSkill(skillName)}
               </button>
             ))
           )}

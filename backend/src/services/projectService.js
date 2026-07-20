@@ -4,6 +4,7 @@ import {
   applyToProjectSchema,
   updateApplicationStatusSchema,
   updateProjectSchema,
+  searchProjectQuerySchema,
 } from "../validators/projectValidator.js";
 import { sendProjectUpdateEmail } from "../utils/sendEmail.js";
 import notificationEmitter from "../utils/notificationEmitter.js";
@@ -268,4 +269,95 @@ export const updateApplicationStatusService = async (
     status,
   );
   return { message: "Application status updated successfully" };
+};
+
+export const getAllSkillsService = async () => {
+  return await prisma.skill.findMany({
+    orderBy: { name: "asc" },
+  });
+};
+
+export const searchProjectsService = async (query, userId) => {
+  const { error, value } = searchProjectQuerySchema.validate(query);
+  if (error) {
+    throw new Error(error.details[0].message);
+  }
+
+  const { q, skills, skillMatch, sortBy, page, limit } = value;
+  const skip = (page - 1) * limit;
+
+  const where = {
+    status: "OPEN",
+  };
+
+  if (q && q.trim() !== "") {
+    where.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
+  if (skills) {
+    const skillNames = skills
+      .split(",")
+      .map((s) => s.trim().toUpperCase())
+      .filter((s) => s.length > 0);
+    if (skillNames.length > 0) {
+      if (skillMatch === "all") {
+        where.AND = skillNames.map((name) => ({
+          skills: { some: { name } },
+        }));
+      } else {
+        where.skills = {
+          some: {
+            name: { in: skillNames },
+          },
+        };
+      }
+    }
+  }
+
+  let projects = await prisma.project.findMany({
+    skip: skip,
+    take: limit,
+    where,
+    orderBy: { createdAt: "desc" },
+    include: {
+      skills: { select: { id: true, name: true } },
+      author: {
+        select: {
+          firstName: true,
+          lastName: true,
+          username: true,
+        },
+      },
+    },
+  });
+
+  if (sortBy === "recommended" && userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { skills: true },
+    });
+
+    if (user && user.skills.length > 0) {
+      const userSkillNames = user.skills.map((s) => s.name);
+
+      projects.forEach((project) => {
+        const projectSkillNames = project.skills.map((s) => s.name);
+        let matchScore = 0;
+        projectSkillNames.forEach((name) => {
+          if (userSkillNames.includes(name)) matchScore++;
+        });
+        project.matchScore = matchScore;
+      });
+
+      projects.sort((a, b) => {
+        if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      });
+    }
+  }
+
+  return projects;
 };

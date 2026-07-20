@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getUserProfile, getAllPosts, getBookmarkedPosts, toggleBookmark } from '../services/Authservice'
+import { formatSkill } from '../utils/formatSkill'
+
 
 function statusStyle(status) {
   if (status === 'OPEN') {
@@ -260,9 +262,9 @@ function Profilepage() {
                   <span
                     key={skill.id}
                     style={{ backgroundColor: '#F5F0EB', color: '#9A8880', fontSize: '11px' }}
-                    className="px-2 py-1 rounded-full font-medium"
+                    className="px-2 py-1 rounded-full font-medium "
                   >
-                    {skill.name}
+                  {formatSkill(skill.name)}
                   </span>
                 ))}
               </div>
@@ -349,7 +351,7 @@ function Profilepage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   {project.skills?.map((skill) => (
                     <span key={skill.id} style={{ backgroundColor: '#F5F0EB', color: '#9A8880', fontSize: '10px' }} className="px-2 py-0.5 rounded-full font-medium">
-                      {skill.name}
+                      {formatSkill(skill.name)}
                     </span>
                   ))}
                 </div>
