@@ -50,8 +50,12 @@ async function apiFetch(path, options = {}, isRetry = false) {
     }
   }
 
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Request failed')
+const result = await response.json()
+  if (!response.ok) {
+    const err = new Error(result.message || 'Request failed')
+    err.categories = result.categories
+    throw err
+  }
   return result
 }
 
