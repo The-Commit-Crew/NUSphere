@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Added profile photo upload feature using Cloudinary.
 - Added `DELETE` endpoint for removing profile photos.
 - Added signed Double Submit Cookie CSRF protection.
-- Added AI moderation middleware to filter inappropriate content.
+- Added AI moderation middleware to filter inappropriate text/images.
 - Added intelligent duplicate detection for topics.
 - Added endpoint for creating topics.
 - Added API rate limiting using Redis.

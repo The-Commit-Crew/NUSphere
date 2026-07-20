@@ -366,7 +366,7 @@ describe("GET /api/posts", () => {
         topicId: testTopicId,
       });
 
-    const res = await request(app).get("/api/posts");
+    const res = await request(app).get("/api/posts?sort=new");
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
