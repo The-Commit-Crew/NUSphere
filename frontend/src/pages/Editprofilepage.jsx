@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -266,24 +265,7 @@ function Editprofilepage() {
 
           <div className="flex flex-col gap-2">
 
-      {/* Upload badge, bottom-right */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 2,
-          right: 2,
-          width: 28,
-          height: 28,
-          borderRadius: '50%',
-          backgroundColor: '#1A1512',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          border: '2px solid #F5F0EB',
-        }}
-      >
-        <Camera size={14} color="#F5F0EB" />
-      </div>
+     
     </div>
 
     {/* Hidden native input, triggered by the circle above */}
