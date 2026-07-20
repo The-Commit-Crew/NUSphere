@@ -9,6 +9,19 @@ import {
   deleteProfilePhoto,
 } from '../services/Authservice'
 import { Camera, X } from 'lucide-react'
+
+function isSafeImageSrc(url) {
+  if (!url) return false
+  try {
+    // blob: URLs from URL.createObjectURL(), and same-origin/https URLs, are fine
+    if (url.startsWith('blob:')) return true
+    const parsed = new URL(url, window.location.origin)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
+  } catch {
+    return false
+  }
+}
+
 function Editprofilepage() {
   const navigate = useNavigate()
   const { token, user } = useAuth()
@@ -195,29 +208,36 @@ function Editprofilepage() {
                 overflow: 'hidden',
               }}
             >
-              {displayedPhoto ? (
-                <img
-                  src={displayedPhoto}
-                  alt="Profile"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: '#F5F0EB',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#9A8880',
-                    fontSize: '11px',
-                    textAlign: 'center',
-                  }}
-                >
-                  No photo
-                </div>
-              )}
+             {displayedPhoto && isSafeImageSrc(displayedPhoto) ? (
+  <img
+    src={displayedPhoto}
+    alt="Profile"
+    style={{
+      width: 72,
+      height: 72,
+      borderRadius: '50%',
+      objectFit: 'cover',
+      border: '1px solid #E8E0D8',
+    }}
+  />
+) : (
+  <div
+    style={{
+      width: 72,
+      height: 72,
+      borderRadius: '50%',
+      backgroundColor: '#F5F0EB',
+      border: '1px solid #E8E0D8',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#9A8880',
+      fontSize: '12px',
+    }}
+  >
+    No photo
+  </div>
+)}
             </div>
 
             {/* Badge — sibling of the circle, NOT nested inside it, so it isn't clipped by overflow:hidden */}
