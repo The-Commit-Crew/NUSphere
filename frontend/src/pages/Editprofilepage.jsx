@@ -7,7 +7,7 @@ import {
   uploadProfilePhoto,
   deleteProfilePhoto,
 } from '../services/Authservice'
-import { Camera, X } from 'lucide-react'
+import { X } from 'lucide-react'
 
 function isSafeImageSrc(url) {
   if (!url) return false
@@ -265,8 +265,7 @@ function Editprofilepage() {
 
           <div className="flex flex-col gap-2">
 
-     
-    </div>
+      
 
     {/* Hidden native input, triggered by the circle above */}
     <input
@@ -335,6 +334,7 @@ function Editprofilepage() {
       )}
     </div>
   )}
+</div>
 </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
