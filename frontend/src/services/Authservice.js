@@ -245,6 +245,21 @@ export async function updateApplicationStatus(appId, data) {
     body: JSON.stringify(data),
   })
 }
+export async function getProjectSkills() {
+  return apiFetch('/projects/skills', { method: 'GET' });
+}
+
+export async function searchProjects({ q, skills, skillMatch, sortBy, page, limit } = {}) {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (skills && skills.length) params.set('skills', skills.join(','));
+  if (skillMatch) params.set('skillMatch', skillMatch);
+  if (sortBy) params.set('sortBy', sortBy);
+  if (page) params.set('page', page);
+  if (limit) params.set('limit', limit);
+
+  return apiFetch(`/projects/search?${params.toString()}`, { method: 'GET' });
+}
 
 //User Profile
 

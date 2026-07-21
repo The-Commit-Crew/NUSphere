@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react'
-import { getAllPosts, castVote, deletePost,  toggleBookmark, getBookmarkedPosts } from '../services/Authservice'
+import { getAllPosts, castVote, deletePost, toggleBookmark, getBookmarkedPosts } from '../services/Authservice'
 import DeleteConfirmDialog from './DeleteConfirmDialog'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useSearch } from '../context/SearchContext'
 
-function Postlist({ selectedTopicId, searchQuery , sortBy }) {
+const LIMIT = 10
+
+function Postlist({ selectedTopicId, searchQuery, sortBy }) {
+  const { setSearchQuery } = useSearch()
+  const [searchInput, setSearchInput] = useState(searchQuery)
+
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -18,6 +24,22 @@ function Postlist({ selectedTopicId, searchQuery , sortBy }) {
     setPrevUser(user)
     setBookmarkedIds(new Set())
   }
+
+  const [page, setPage] = useState(1)
+  const filterKey = `${selectedTopicId}|${searchQuery}|${sortBy}`
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey)
+
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey)
+    setPage(1)
+  }
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setSearchQuery(searchInput.trim())
+    }, 400)
+    return () => clearTimeout(timeout)
+  }, [searchInput])
 
   useEffect(() => {
     if (!user) return
@@ -35,6 +57,8 @@ function Postlist({ selectedTopicId, searchQuery , sortBy }) {
           q: searchQuery || undefined,
           sort: sortBy,
           topicId: selectedTopicId ?? undefined,
+          page,
+          limit: LIMIT,
         })
         setPosts(data)
       } catch (err) {
@@ -45,7 +69,7 @@ function Postlist({ selectedTopicId, searchQuery , sortBy }) {
       }
     }
     fetchPosts()
-  }, [selectedTopicId, searchQuery, sortBy])
+  }, [selectedTopicId, searchQuery, sortBy, page])
 
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
   async function handleDeletePost() {
@@ -54,38 +78,39 @@ function Postlist({ selectedTopicId, searchQuery , sortBy }) {
       setPosts(prev => prev.filter(post => post.id !== pendingDeleteId))
     } catch (err) {
       console.error(err)
-      setVoteMessage(err.message) // reusing the existing message slot for simplicity
+      setVoteMessage(err.message)
       setTimeout(() => setVoteMessage(''), 3000)
     } finally {
       setPendingDeleteId(null)
     }
   }
-  async function handleVote(e, postId, voteType) {
-  e.stopPropagation()
-  if (!token) {
-    setVoteMessage('Please log in to vote')
-    setTimeout(() => setVoteMessage(''), 3000)
-    return
-  }
-  try {
-    const result = await castVote(postId, voteType, token)
-    setPosts(prev => prev.map(post =>
-      post.id === postId
-        ? {
-            ...post,
-            upvoteCount: result.upvoteCount,
-            downvoteCount: result.downvoteCount,
-            userVoteStatus: post.userVoteStatus === voteType ? null : voteType,
-          }
-        : post
-    ))
-    setVoteMessage('')
-  } catch (err) {
-    console.error(err)
-  }
-}
 
-async function handleBookmarkToggle(e, postId) {
+  async function handleVote(e, postId, voteType) {
+    e.stopPropagation()
+    if (!token) {
+      setVoteMessage('Please log in to vote')
+      setTimeout(() => setVoteMessage(''), 3000)
+      return
+    }
+    try {
+      const result = await castVote(postId, voteType, token)
+      setPosts(prev => prev.map(post =>
+        post.id === postId
+          ? {
+              ...post,
+              upvoteCount: result.upvoteCount,
+              downvoteCount: result.downvoteCount,
+              userVoteStatus: post.userVoteStatus === voteType ? null : voteType,
+            }
+          : post
+      ))
+      setVoteMessage('')
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  async function handleBookmarkToggle(e, postId) {
     e.stopPropagation()
     if (!token) {
       setVoteMessage('Please log in to save posts')
@@ -120,38 +145,72 @@ async function handleBookmarkToggle(e, postId) {
     return `${Math.floor(seconds / 86400)}d ago`
   }
 
+
+ const headerRow = (
+  <div className="flex items-start justify-between mb-1 gap-4">
+    <span style={{ color: '#1A1512', paddingTop: '10px' }} className="text-sm font-medium whitespace-nowrap">
+      {posts.length} questions
+    </span>
+    <div
+      className="flex items-center gap-2 rounded-lg"
+      style={{ border: '1px solid #E8E0D8', backgroundColor: '#FFFFFF', minWidth: '220px' }}
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#9A8880', marginLeft: '10px', flexShrink: 0 }}>
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.35-4.35" />
+      </svg>
+      <input
+        value={searchInput}
+        onChange={(e) => setSearchInput(e.target.value)}
+        placeholder="Search posts..."
+        className="bg-transparent outline-none flex-1 text-sm py-2 pr-3"
+        style={{ color: '#1A1512' }}
+      />
+    </div>
+  </div>
+)
+
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center py-20">
-        <p style={{ color: '#9A8880' }} className="text-sm">Loading posts...</p>
+      <div className="flex-1 flex flex-col gap-3">
+        {headerRow}
+        <div className="flex items-center justify-center py-20">
+          <p style={{ color: '#9A8880' }} className="text-sm">Loading posts...</p>
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex-1 flex items-center justify-center py-20">
-        <p style={{ color: '#C4552A' }} className="text-sm">{error}</p>
+      <div className="flex-1 flex flex-col gap-3">
+        {headerRow}
+        <div className="flex items-center justify-center py-20">
+          <p style={{ color: '#C4552A' }} className="text-sm">{error}</p>
+        </div>
       </div>
     )
   }
 
   if (posts.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center py-20">
-        <p style={{ color: '#9A8880' }} className="text-sm">No posts yet. Be the first to ask!</p>
+      <div className="flex-1 flex flex-col gap-3">
+        {headerRow}
+        <div className="flex items-center justify-center py-20">
+          <p style={{ color: '#9A8880' }} className="text-sm">
+            {page === 1 ? 'No posts yet. Be the first to ask!' : 'No more posts.'}
+          </p>
+        </div>
       </div>
     )
   }
 
+  const hasNextPage = posts.length === LIMIT
+
   return (
     <div className="flex-1 flex flex-col gap-3">
 
-      <div className="flex items-center justify-between mb-1">
-        <span style={{ color: '#1A1512' }} className="text-sm font-medium">
-          {posts.length} questions
-        </span>
-      </div>
+      {headerRow}
 
       {voteMessage && (
         <p style={{ color: '#C4552A' }} className="text-xs">
@@ -159,7 +218,7 @@ async function handleBookmarkToggle(e, postId) {
         </p>
       )}
 
-     {posts.map((post) => (
+      {posts.map((post) => (
         <div
           key={post.id}
           onClick={() => navigate(`/posts/${post.id}`)}
@@ -192,21 +251,20 @@ async function handleBookmarkToggle(e, postId) {
             </div>
           </div>
 
-          {/* Action row */}
           <div className="flex items-center gap-2" style={{ borderTop: '1px solid #F5F0EB', paddingTop: '10px' }}>
             <button
-            onClick={(e) => handleVote(e, post.id, 'UP')}
-            style={{
-              backgroundColor: post.userVoteStatus === 'UP' ? '#FDF6F3' : '#F5F0EB',
-              color: post.userVoteStatus === 'UP' ? '#C4552A' : '#9A8880',
-              border: post.userVoteStatus === 'UP' ? '1px solid #C4552A' : '1px solid transparent',
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium hover:opacity-70"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 19V5M5 12l7-7 7 7" />
-            </svg>
-            {post.upvoteCount}
+              onClick={(e) => handleVote(e, post.id, 'UP')}
+              style={{
+                backgroundColor: post.userVoteStatus === 'UP' ? '#FDF6F3' : '#F5F0EB',
+                color: post.userVoteStatus === 'UP' ? '#C4552A' : '#9A8880',
+                border: post.userVoteStatus === 'UP' ? '1px solid #C4552A' : '1px solid transparent',
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium hover:opacity-70"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 19V5M5 12l7-7 7 7" />
+              </svg>
+              {post.upvoteCount}
             </button>
 
             <button
@@ -250,27 +308,58 @@ async function handleBookmarkToggle(e, postId) {
             </button>
 
             {user && user.id === post.authorId && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setPendingDeleteId(post.id) }}
-              style={{ backgroundColor: '#F5F0EB', color: '#C4552A', marginLeft: 'auto' }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium hover:opacity-70"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-              </svg>
-              Delete
-            </button>
-          )}
+              <button
+                onClick={(e) => { e.stopPropagation(); setPendingDeleteId(post.id) }}
+                style={{ backgroundColor: '#F5F0EB', color: '#C4552A', marginLeft: 'auto' }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium hover:opacity-70"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                Delete
+              </button>
+            )}
           </div>
         </div>
       ))}
-          <DeleteConfirmDialog
-      open={pendingDeleteId !== null}
-      message="Delete this post? This can't be undone."
-      onCancel={() => setPendingDeleteId(null)}
-      onConfirm={handleDeletePost}
-    />
+
+      <div className="flex items-center justify-center gap-4 mt-4">
+        <button
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+          style={{
+            border: '1px solid #E8E0D8',
+            color: page === 1 ? '#C4B8AE' : '#1A1512',
+            backgroundColor: '#FFFFFF',
+          }}
+          className="px-4 py-1.5 rounded-full text-sm font-medium"
+        >
+          Previous
+        </button>
+        <span style={{ color: '#9A8880' }} className="text-sm">
+          Page {page}
+        </span>
+        <button
+          onClick={() => setPage((p) => p + 1)}
+          disabled={!hasNextPage}
+          style={{
+            border: '1px solid #E8E0D8',
+            color: !hasNextPage ? '#C4B8AE' : '#1A1512',
+            backgroundColor: '#FFFFFF',
+          }}
+          className="px-4 py-1.5 rounded-full text-sm font-medium"
+        >
+          Next
+        </button>
+      </div>
+
+      <DeleteConfirmDialog
+        open={pendingDeleteId !== null}
+        message="Delete this post? This can't be undone."
+        onCancel={() => setPendingDeleteId(null)}
+        onConfirm={handleDeletePost}
+      />
     </div>
   )
 }

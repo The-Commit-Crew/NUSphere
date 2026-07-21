@@ -1,16 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useSearch } from '../context/SearchContext'
 import NotificationBell from './NotificationBell'
 
-const SORT_OPTIONS = [
-  { value: 'new', label: 'New' },
-  { value: 'top', label: 'Top' },
-  { value: 'hot', label: 'Hot' },
-]
-
-// ── Icons (inline SVG, matches the search-icon style already in this file — no new dependency) ──
 function HomeIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -35,90 +27,10 @@ function UserIcon() {
   )
 }
 
-function SortDropdown({ sortBy, setSortBy }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  const currentLabel = SORT_OPTIONS.find(o => o.value === sortBy)?.label || 'Sort'
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen(prev => !prev)}
-        className="flex items-center gap-1 pl-3 pr-2.5 py-2 text-sm font-medium"
-        style={{
-          color: '#F0EAE4',
-          borderRight: '1px solid #4A423C',
-          fontFamily: "'DM Sans', sans-serif",
-        }}
-      >
-        {currentLabel}
-        <svg
-          width="20" height="25" viewBox="0 0 24 24" fill="currentColor"
-          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}
-        >
-          <path d="M7 10l5 5 5-5z" />
-        </svg>
-      </button>
-
-      {open && (
-        <div
-          className="absolute top-full left-0 mt-2 rounded-lg overflow-hidden z-20"
-          style={{
-            backgroundColor: '#1A1512',
-            border: '1px solid #2C2420',
-            minWidth: '140px',
-          }}
-        >
-          {SORT_OPTIONS.map(option => (
-            <button
-              key={option.value}
-              onClick={() => { setSortBy(option.value); setOpen(false) }}
-              className="w-full text-left px-4 py-2.5 text-sm hover:opacity-80"
-              style={{
-                color: option.value === sortBy ? '#F0EAE4' : '#B8ADA4',
-                backgroundColor: option.value === sortBy ? '#2C2420' : 'transparent',
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 function Navbar() {
   const { user, logout } = useAuth()
-  const { setSearchQuery, sortBy, setSortBy } = useSearch()
   const navigate = useNavigate()
   const location = useLocation()
-
-  const [searchInput, setSearchInput] = useState('')
-  const [searchFocused, setSearchFocused] = useState(false)
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      const trimmed = searchInput.trim()
-      setSearchQuery(trimmed)
-      if (trimmed && location.pathname !== '/') {
-        navigate('/')
-      }
-    }, 400)
-    return () => clearTimeout(timeout)
-  }, [searchInput])
 
   function handleLogout() {
     logout()
@@ -137,13 +49,13 @@ function Navbar() {
 
   return (
     <nav style={{ backgroundColor: '#1A1512' }} className="px-6 py-4">
-      <div className="max-w-6xl mx-auto flex items-center gap-6">
+      <div className="max-w-6xl mx-auto grid items-center" style={{ gridTemplateColumns: '1fr auto 1fr' }}>
 
-        <Link to="/" style={{ color: '#F0EAE4', fontFamily: "'Playfair Display', serif" }} className="text-xl font-bold tracking-tight">
+        <Link to="/" style={{ color: '#F0EAE4', fontFamily: "'Playfair Display', serif" }} className="text-xl font-bold tracking-tight justify-self-start">
           NUSphere
         </Link>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 justify-self-center">
           <Link
             to="/"
             className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg hover:opacity-80"
@@ -169,33 +81,7 @@ function Navbar() {
           )}
         </div>
 
-        <div
-          className="flex items-center flex-1 max-w-md ml-auto rounded-lg text-sm transition-all"
-          style={{
-            backgroundColor: '#2C2420',
-            border: `1px solid ${searchFocused ? '#C4552A55' : '#2C2420'}`,
-          }}
-        >
-          <SortDropdown sortBy={sortBy} setSortBy={setSortBy} />
-
-          <div className="flex items-center gap-2 flex-1 px-3 py-2">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#8A7A72' }}>
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-            <input
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              placeholder="Search..."
-              className="bg-transparent outline-none flex-1 text-sm"
-              style={{ color: '#F0EAE4', fontFamily: "'DM Sans', sans-serif" }}
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 justify-self-end">
           {user ? (
             <>
               <NotificationBell />

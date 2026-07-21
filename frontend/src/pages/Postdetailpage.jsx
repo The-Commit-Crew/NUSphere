@@ -569,6 +569,8 @@ const handleBookmarkToggle = async () => {
             editingId={editingId}
             editContent={editContent}
             setEditContent={setEditContent}
+            editAnonymous={editAnonymous}       
+            setEditAnonymous={setEditAnonymous}
             replyingTo={replyingTo}
             replyContent={replyContent}
             setReplyContent={setReplyContent}
