@@ -39,7 +39,7 @@ function Postlist({ selectedTopicId, searchQuery, sortBy }) {
       setSearchQuery(searchInput.trim())
     }, 400)
     return () => clearTimeout(timeout)
-  }, [searchInput])
+  }, [searchInput, setSearchQuery])
 
   useEffect(() => {
     if (!user) return
