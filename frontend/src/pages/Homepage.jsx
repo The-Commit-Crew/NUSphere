@@ -27,12 +27,18 @@ function Homepage() {
     fetchTopics()
   }, [])
 
+  function handleTopicCreated(topic) {
+    setTopics((prev) => [...prev, topic])
+    setSelectedTopicId(topic.id)
+  }
+
   return (
     <div>
       <Topicstrip
         topics={topics}
         selectedTopicId={selectedTopicId}
         onSelectTopic={setSelectedTopicId}
+        onTopicCreated={handleTopicCreated}
         showAskButton={!!user}
       />
 

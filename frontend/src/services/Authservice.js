@@ -121,6 +121,13 @@ export async function getAllTopics() {
 export async function getTopicById(topicId) {
   return apiFetch(`/topics/${topicId}`)
 }
+export async function createTopic(data) {
+  return apiFetch('/topics', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}
 
 //Posts
 export async function getAllPosts(params = {}) {
@@ -146,6 +153,14 @@ export async function createPost(data) {
     body: JSON.stringify(data),
   })
 }
+export async function checkDuplicatePosts(title, content) {
+  return apiFetch('/posts/check-duplicates', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, content }),
+  })
+}
+
 export async function deletePost(postId) {
   return apiFetch(`/posts/${postId}`, { method: 'DELETE' })
 }
