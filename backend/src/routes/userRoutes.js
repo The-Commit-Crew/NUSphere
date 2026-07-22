@@ -3,6 +3,11 @@ import {
   authenticateToken,
   optionalAuth,
 } from "../middleware/authMiddleware.js";
+import {
+  moderateContent,
+  moderateImageContent,
+} from "../middleware/contentModeration.js";
+import { moderationLimiter } from "../middleware/rateLimiter.js";
 import { uploadProfilePic } from "../middleware/uploadMiddleware.js";
 import {
   updateUserProfile,
@@ -74,11 +79,13 @@ router.get("/me/dashboard", authenticateToken, getUserDashboard);
  *             schema:
  *               $ref: '#/components/schemas/User'
  *       400:
- *         description: Validation error
+ *         description: Validation error or content flagged by moderation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
  *       401:
  *         description: Unauthorized - No token provided
  *         content:
@@ -91,8 +98,26 @@ router.get("/me/dashboard", authenticateToken, getUserDashboard);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.put("/me", authenticateToken, updateUserProfile);
+router.put(
+  "/me",
+  authenticateToken,
+  moderationLimiter,
+  moderateContent,
+  updateUserProfile,
+);
 
 /**
  * @swagger
@@ -141,26 +166,49 @@ router.get("/:username", optionalAuth, getUserProfile);
  *       content:
  *         multipart/form-data:
  *           schema:
- *             type: object
- *             properties:
- *               profileImage:
- *                 type: string
- *                 format: binary
- *                 description: The image file to upload (jpg, jpeg, png, webp). Max size 5MB.
+ *             $ref: '#/components/schemas/UploadProfileImageRequest'
  *     responses:
  *       200:
  *         description: Profile photo successfully updated.
  *       400:
- *         description: No file provided or invalid file format/size.
+ *         description: No file provided, invalid file format/size, or image flagged by moderation.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       403:
  *         description: Forbidden (CSRF token missing/invalid)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.patch(
   "/me/photo",
   authenticateToken,
+  moderationLimiter,
   uploadProfilePic.single("profileImage"),
+  moderateImageContent,
   updateProfilePhoto,
 );
 

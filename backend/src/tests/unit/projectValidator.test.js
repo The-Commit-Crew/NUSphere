@@ -4,6 +4,7 @@ import {
   applyToProjectSchema,
   updateApplicationStatusSchema,
   updateProjectSchema,
+  searchProjectQuerySchema,
 } from "../../validators/projectValidator.js";
 
 describe("createProjectSchema", () => {
@@ -118,6 +119,44 @@ describe("updateProjectSchema", () => {
 
   it("should fail if skills array provided but empty", () => {
     const { error } = updateProjectSchema.validate({ skills: [] });
+    expect(error).toBeDefined();
+  });
+});
+
+describe("searchProjectQuerySchema", () => {
+  it("should pass with valid partial query", () => {
+    const { error, value } = searchProjectQuerySchema.validate({
+      q: " React ",
+      page: "1",
+    });
+    expect(error).toBeUndefined();
+    expect(value.q).toBe("React");
+    expect(value.page).toBe(1);
+    expect(value.limit).toBe(10);
+  });
+
+  it("should pass with full query and sort options", () => {
+    const { error, value } = searchProjectQuerySchema.validate({
+      q: "web",
+      skills: "React, Node.js ",
+      sortBy: "newest",
+      page: "2",
+      limit: "5",
+    });
+    expect(error).toBeUndefined();
+    expect(value.skills).toBe("React, Node.js");
+    expect(value.sortBy).toBe("newest");
+    expect(value.page).toBe(2);
+    expect(value.limit).toBe(5);
+  });
+
+  it("should fail with invalid limit", () => {
+    const { error } = searchProjectQuerySchema.validate({ limit: "100" });
+    expect(error).toBeDefined();
+  });
+
+  it("should fail with invalid sortBy", () => {
+    const { error } = searchProjectQuerySchema.validate({ sortBy: "invalidField" });
     expect(error).toBeDefined();
   });
 });

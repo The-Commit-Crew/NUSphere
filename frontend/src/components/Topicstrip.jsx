@@ -1,6 +1,4 @@
-import { Link } from 'react-router-dom'
-
-function Topicstrip({ topics, selectedTopicId, onSelectTopic, showAskButton }) {
+function Topicstrip({ topics, selectedTopicId, onSelectTopic }) {
   return (
     <div
       style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E8E0D8' }}
@@ -30,16 +28,6 @@ function Topicstrip({ topics, selectedTopicId, onSelectTopic, showAskButton }) {
           {topic.name}
         </button>
       ))}
-
-      {showAskButton && (
-        <Link
-          to="/create-post"
-          style={{ backgroundColor: '#F5E8E2', color: '#9E3D1C', marginLeft: 'auto' }}
-          className="text-xs font-semibold px-4 py-1.5 rounded-full whitespace-nowrap shrink-0 hover:opacity-80"
-        >
-          + Ask a question
-        </Link>
-      )}
     </div>
   )
 }

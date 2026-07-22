@@ -35,7 +35,7 @@ function CommentBlock({
   handleReply,
   setPendingDelete,
 }) {
-  const isAuthor = user && user.username === comment.author?.username
+  const isAuthor = comment.isMine;
   const isEditing = editingId === comment.id
   const isReplying = replyingTo === comment.id
 
@@ -569,6 +569,8 @@ const handleBookmarkToggle = async () => {
             editingId={editingId}
             editContent={editContent}
             setEditContent={setEditContent}
+            editAnonymous={editAnonymous}       
+            setEditAnonymous={setEditAnonymous}
             replyingTo={replyingTo}
             replyContent={replyContent}
             setReplyContent={setReplyContent}

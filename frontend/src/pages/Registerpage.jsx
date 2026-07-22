@@ -78,7 +78,7 @@ function Registerpage() {
                 onChange={handleChange}
                 required
                 style={{ border: '1px solid #E8E0D8', color: '#1A1512', backgroundColor: '#FAFAF8' }}
-                className="px-3 py-2 rounded-lg text-sm outline-none focus:border-[#C4552A]"
+                className="px-3 py-2 rounded-lg text-sm outline-none focus:border-accent"
               />
             </div>
             <div className="flex-1 flex flex-col gap-1">

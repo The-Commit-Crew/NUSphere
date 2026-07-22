@@ -1,4 +1,6 @@
 import { authenticateToken } from "../middleware/authMiddleware.js";
+import { moderateContent } from "../middleware/contentModeration.js";
+import { moderationLimiter } from "../middleware/rateLimiter.js";
 import {
   createProject,
   getAllProjects,
@@ -7,7 +9,10 @@ import {
   applyToProject,
   getProjectApplications,
   updateApplicationStatus,
+  getAllSkills,
+  searchProjects,
 } from "../controllers/projectController.js";
+import { optionalAuth } from "../middleware/authMiddleware.js";
 import { Router } from "express";
 
 const router = Router();
@@ -39,6 +44,99 @@ router.get("/", getAllProjects);
 
 /**
  * @swagger
+ * /api/projects/skills:
+ *   get:
+ *     summary: Get all available skills
+ *     description: Returns a list of all skills currently in the database, ordered alphabetically.
+ *     tags: [Projects]
+ *     responses:
+ *       200:
+ *         description: List of all skills
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Skill'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get("/skills", getAllSkills);
+
+/**
+ * @swagger
+ * /api/projects/search:
+ *   get:
+ *     summary: Search and filter projects
+ *     description: Search projects by title/description, filter by skills, and apply custom sorting and pagination. If the user is authenticated, the 'recommended' sort will personalize results based on the user's skills.
+ *     tags: [Projects]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Search term for project title or description
+ *       - in: query
+ *         name: skills
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of skills to filter by (e.g., 'React,Node')
+ *       - in: query
+ *         name: skillMatch
+ *         schema:
+ *           type: string
+ *           enum: [any, all]
+ *           default: any
+ *         description: Determines if the project should have 'any' or 'all' of the requested skills
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [newest, recommended]
+ *           default: newest
+ *         description: Sort order for the results
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of projects per page
+ *     responses:
+ *       200:
+ *         description: A paginated list of matching projects
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Project'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get("/search", optionalAuth, searchProjects);
+
+/**
+ * @swagger
  * /api/projects/{id}:
  *   get:
  *     summary: Get a project by ID
@@ -58,14 +156,7 @@ router.get("/", getAllProjects);
  *         content:
  *           application/json:
  *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/Project'
- *                 - type: object
- *                   properties:
- *                     applicationCount:
- *                       type: integer
- *                       description: Total number of applications received
- *                       example: 5
+ *               $ref: '#/components/schemas/ProjectWithDetails'
  *       400:
  *         description: Project not found
  *         content:
@@ -89,27 +180,7 @@ router.get("/:id", getProjectById);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - title
- *               - description
- *               - skills
- *             properties:
- *               title:
- *                 type: string
- *                 minLength: 5
- *                 maxLength: 100
- *                 example: "NLP Research Assistant"
- *               description:
- *                 type: string
- *                 minLength: 20
- *                 example: "Looking for a student to help with sentiment analysis research."
- *               skills:
- *                 type: array
- *                 items:
- *                   type: string
- *                 minItems: 1
- *                 example: ["Python", "NLP", "Machine Learning"]
+ *             $ref: '#/components/schemas/CreateProjectRequest'
  *     responses:
  *       201:
  *         description: Project created successfully
@@ -118,11 +189,13 @@ router.get("/:id", getProjectById);
  *             schema:
  *               $ref: '#/components/schemas/Project'
  *       400:
- *         description: Validation error
+ *         description: Validation error or content flagged by moderation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
  *       401:
  *         description: No token provided
  *         content:
@@ -135,8 +208,26 @@ router.get("/:id", getProjectById);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.post("/", authenticateToken, createProject);
+router.post(
+  "/",
+  authenticateToken,
+  moderationLimiter,
+  moderateContent,
+  createProject,
+);
 
 /**
  * @swagger
@@ -164,27 +255,7 @@ router.post("/", authenticateToken, createProject);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *                 minLength: 5
- *                 maxLength: 100
- *                 example: "Updated Project Title"
- *               description:
- *                 type: string
- *                 minLength: 20
- *                 example: "Updated description with more details about the project."
- *               status:
- *                 type: string
- *                 enum: [OPEN, IN_PROGRESS, COMPLETED]
- *                 example: "IN_PROGRESS"
- *               skills:
- *                 type: array
- *                 items:
- *                   type: string
- *                 minItems: 1
- *                 example: ["Python", "React"]
+ *             $ref: '#/components/schemas/UpdateProjectRequest'
  *     responses:
  *       200:
  *         description: Project updated successfully
@@ -193,11 +264,13 @@ router.post("/", authenticateToken, createProject);
  *             schema:
  *               $ref: '#/components/schemas/Project'
  *       400:
- *         description: Validation error or project not found
+ *         description: Validation error, project not found, or content flagged by moderation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
  *       401:
  *         description: No token provided
  *         content:
@@ -210,8 +283,26 @@ router.post("/", authenticateToken, createProject);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.put("/:id", authenticateToken, updateProject);
+router.put(
+  "/:id",
+  authenticateToken,
+  moderationLimiter,
+  moderateContent,
+  updateProject,
+);
 
 /**
  * @swagger
@@ -238,30 +329,22 @@ router.put("/:id", authenticateToken, updateProject);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               message:
- *                 type: string
- *                 maxLength: 500
- *                 description: Optional message to the project author
- *                 example: "I have 2 years of experience in NLP and would love to contribute."
+ *             $ref: '#/components/schemas/ApplyToProjectRequest'
  *     responses:
  *       201:
  *         description: Application submitted successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Project application successful"
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
- *         description: Project not found, not open, or user applying to own project
+ *         description: Project not found, not open, user applying to own project, or content flagged by moderation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Error'
+ *                 - $ref: '#/components/schemas/ModerationError'
  *       401:
  *         description: No token provided
  *         content:
@@ -274,8 +357,26 @@ router.put("/:id", authenticateToken, updateProject);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests, rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+ *       500:
+ *         description: Internal server error or content moderation failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.post("/:id/apply", authenticateToken, applyToProject);
+router.post(
+  "/:id/apply",
+  authenticateToken,
+  moderationLimiter,
+  moderateContent,
+  applyToProject,
+);
 
 /**
  * @swagger
@@ -352,25 +453,14 @@ router.get("/:id/applications", authenticateToken, getProjectApplications);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - status
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [ACCEPTED, REJECTED]
- *                 example: "ACCEPTED"
+ *             $ref: '#/components/schemas/UpdateApplicationStatusRequest'
  *     responses:
  *       200:
  *         description: Application status updated and email sent to applicant
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Application status updated successfully"
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       400:
  *         description: Application not found or user is not the project author
  *         content:

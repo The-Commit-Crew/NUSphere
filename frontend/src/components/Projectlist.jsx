@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { formatSkill } from '../utils/formatSkill'
 
-function Projectlist({ projects, loading, error, selectedSkill }) {
+function Projectlist({ projects, loading, error, page, onChangePage, limit }) {
   const navigate = useNavigate()
 
   function timeAgo(dateString) {
@@ -40,37 +40,28 @@ function Projectlist({ projects, loading, error, selectedSkill }) {
     )
   }
 
-  const filteredProjects = selectedSkill === null
-    ? projects
-    : projects.filter((project) =>
-        project.skills?.some((skill) => skill.name === selectedSkill)
-      )
-
-  if (filteredProjects.length === 0) {
+  if (projects.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center py-20">
         <p style={{ color: '#9A8880' }} className="text-sm">
-          {selectedSkill === null
-            ? 'No projects yet. Be the first to post one!'
-            : `No projects looking for ${selectedSkill}`}
+          {page === 1 ? 'No projects match your filters.' : 'No more projects.'}
         </p>
       </div>
     )
   }
+
+  const hasNextPage = projects.length === limit
 
   return (
     <div className="flex-1 flex flex-col gap-3">
 
       <div className="flex items-center justify-between mb-1">
         <span style={{ color: '#1A1512' }} className="text-sm font-medium">
-          {filteredProjects.length} projects
-        </span>
-        <span style={{ color: '#9A8880' }} className="text-sm">
-          Sort: Recent
+          {projects.length} project{projects.length !== 1 ? 's' : ''}
         </span>
       </div>
 
-      {filteredProjects.map((project) => (
+      {projects.map((project) => (
         <div
           key={project.id}
           onClick={() => navigate(`/collaborate/${project.id}`)}
@@ -115,6 +106,37 @@ function Projectlist({ projects, loading, error, selectedSkill }) {
 
         </div>
       ))}
+
+      {/* Pagination */}
+      <div className="flex items-center justify-center gap-4 mt-4">
+        <button
+          onClick={() => onChangePage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+          style={{
+            border: '1px solid #E8E0D8',
+            color: page === 1 ? '#C4B8AE' : '#1A1512',
+            backgroundColor: '#FFFFFF',
+          }}
+          className="px-4 py-1.5 rounded-full text-sm font-medium"
+        >
+          Previous
+        </button>
+        <span style={{ color: '#9A8880' }} className="text-sm">
+          Page {page}
+        </span>
+        <button
+          onClick={() => onChangePage((p) => p + 1)}
+          disabled={!hasNextPage}
+          style={{
+            border: '1px solid #E8E0D8',
+            color: !hasNextPage ? '#C4B8AE' : '#1A1512',
+            backgroundColor: '#FFFFFF',
+          }}
+          className="px-4 py-1.5 rounded-full text-sm font-medium"
+        >
+          Next
+        </button>
+      </div>
     </div>
   )
 }

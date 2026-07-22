@@ -50,8 +50,12 @@ async function apiFetch(path, options = {}, isRetry = false) {
     }
   }
 
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.message || 'Request failed')
+const result = await response.json()
+  if (!response.ok) {
+    const err = new Error(result.message || 'Request failed')
+    err.categories = result.categories
+    throw err
+  }
   return result
 }
 
@@ -117,6 +121,13 @@ export async function getAllTopics() {
 export async function getTopicById(topicId) {
   return apiFetch(`/topics/${topicId}`)
 }
+export async function createTopic(data) {
+  return apiFetch('/topics', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}
 
 //Posts
 export async function getAllPosts(params = {}) {
@@ -142,6 +153,14 @@ export async function createPost(data) {
     body: JSON.stringify(data),
   })
 }
+export async function checkDuplicatePosts(title, content) {
+  return apiFetch('/posts/check-duplicates', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, content }),
+  })
+}
+
 export async function deletePost(postId) {
   return apiFetch(`/posts/${postId}`, { method: 'DELETE' })
 }
@@ -225,6 +244,21 @@ export async function updateApplicationStatus(appId, data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
+}
+export async function getProjectSkills() {
+  return apiFetch('/projects/skills', { method: 'GET' });
+}
+
+export async function searchProjects({ q, skills, skillMatch, sortBy, page, limit } = {}) {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (skills && skills.length) params.set('skills', skills.join(','));
+  if (skillMatch) params.set('skillMatch', skillMatch);
+  if (sortBy) params.set('sortBy', sortBy);
+  if (page) params.set('page', page);
+  if (limit) params.set('limit', limit);
+
+  return apiFetch(`/projects/search?${params.toString()}`, { method: 'GET' });
 }
 
 //User Profile
