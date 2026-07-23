@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react'
-import { logoutUser } from '../services/Authservice'
+import { logoutUser, logoutAllDevices } from '../services/Authservice'
+
 
 const AuthContext = createContext(null)
 
@@ -34,9 +35,19 @@ export function AuthProvider({ children }) {
       console.error('Logout request failed:', err)
     }
   }
+  async function logoutAll() {
+    setUser(null)
+    setToken(null)
+    localStorage.removeItem('user')
+    try {
+      await logoutAllDevices()
+    } catch (err) {
+      console.error('Logout-all request failed:', err)
+    }
+  }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, login, logout, logoutAll  }}>
       {children}
     </AuthContext.Provider>
   )

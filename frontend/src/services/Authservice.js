@@ -95,6 +95,10 @@ export async function logoutUser() {
   return apiFetch('/auth/logout', { method: 'POST' })
 }
 
+export async function logoutAllDevices() {
+  return apiFetch('/auth/logout-all', { method: 'POST' })
+}
+
 //AccRecovery
 
 export async function requestPasswordReset(data) {

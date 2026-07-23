@@ -1,7 +1,8 @@
-
+import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import NotificationBell from './NotificationBell'
+import Modal from './Modal'
 
 function HomeIcon() {
   return (
@@ -28,12 +29,26 @@ function UserIcon() {
 }
 
 function Navbar() {
-  const { user, logout } = useAuth()
+  const { user, logout, logoutAll } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
-  function handleLogout() {
-    logout()
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  async function handleLogoutThisDevice() {
+    setLoggingOut(true)
+    await logout()
+    setLoggingOut(false)
+    setShowLogoutModal(false)
+    navigate('/')
+  }
+
+  async function handleLogoutAllDevices() {
+    setLoggingOut(true)
+    await logoutAll()
+    setLoggingOut(false)
+    setShowLogoutModal(false)
     navigate('/')
   }
 
@@ -89,7 +104,7 @@ function Navbar() {
                 {user.username}
               </span>
               <button
-                onClick={handleLogout}
+                onClick={() => setShowLogoutModal(true)}
                 style={{ border: '1px solid #4A423C', color: '#B8ADA4' }}
                 className="px-4 py-2 rounded-full text-sm hover:opacity-70"
               >
@@ -113,6 +128,42 @@ function Navbar() {
         </div>
 
       </div>
+
+      <Modal
+        open={showLogoutModal}
+        onClose={() => !loggingOut && setShowLogoutModal(false)}
+        title="Log out"
+      >
+        <p style={{ color: '#6B5B52' }} className="mb-6 text-sm">
+          Choose whether to log out of just this device, or end every active session everywhere.
+        </p>
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={handleLogoutThisDevice}
+            disabled={loggingOut}
+            style={{ border: '1px solid #E8E0D8', color: '#1A1512' }}
+            className="w-full px-4 py-2.5 rounded-full text-sm font-medium hover:opacity-80 disabled:opacity-50"
+          >
+            {loggingOut ? 'Logging out…' : 'Log out of this device'}
+          </button>
+          <button
+            onClick={handleLogoutAllDevices}
+            disabled={loggingOut}
+            style={{ backgroundColor: '#C4552A', color: '#FFFFFF' }}
+            className="w-full px-4 py-2.5 rounded-full text-sm font-medium hover:opacity-90 disabled:opacity-50"
+          >
+            {loggingOut ? 'Logging out…' : 'Log out of all devices'}
+          </button>
+          <button
+            onClick={() => setShowLogoutModal(false)}
+            disabled={loggingOut}
+            style={{ color: '#9A8880' }}
+            className="w-full px-4 py-2 text-sm hover:opacity-70 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
     </nav>
   )
 }
